@@ -84,7 +84,7 @@
                 <label for="category" class="text-white font-weight-bold mb-1">Pilih Kategori</label>
                 <div class="input-group">
                     <select class="form-control" id="categoryBrand" name="categoryBrand">
-                        <option value="all">Semua Produk</option>
+                        <option value="all">Semua PRODUKK</option>
                         @foreach ($categoriesWithBrands as $item)
                             <option value="{{ $item->category_id }}-{{ $item->brand_id }}">
                                 {{ $item->category_name }} {{ $item->brand_name }}
