@@ -12,16 +12,119 @@
         <div class="section-body">
             {{-- Form Cari --}}
             <form action="" method="GET" class="mb-3">
-                <div class="input-group">
-                    <input type="text" name="cari" value="{{ request('cari') }}" class="form-control"
-                        placeholder="Cari produk...">
-                    <div class="input-group-append">
-                        <button class="btn btn-primary" type="submit">
-                            <i class="fas fa-search"></i>
-                        </button>
+                @csrf
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <input type="text" name="cari" value="{{ request('cari') }}" class="form-control"
+                            placeholder="Cari produk...">
                     </div>
+
+                    <input type="date" name="last_report_date" id="last_report_date"
+                        value="{{ request('last_report_date', \Carbon\Carbon::now()->subDay()->format('Y-m-d')) }}"
+                        class="form-control form-control-sm d-inline-block" style="max-width: 200px;">
                 </div>
             </form>
+
+            @php
+                use Carbon\Carbon;
+                // Ambil dari form input atau default ke kemarin
+                $lastReportDate = request('last_report_date')
+                    ? Carbon::parse(request('last_report_date'))->startOfDay()
+                    : Carbon::now()->subDay()->startOfDay();
+
+                // Ambil semua ID detail produk yang stok-nya berubah sejak last report
+                $produkBerubah = \App\Models\DetailTransaction::whereDate(
+                    'created_at',
+                    '>',
+                    $lastReportDate->toDateString(),
+                )
+                    ->pluck('detail_product_id')
+                    ->unique()
+                    ->toArray();
+
+                $produkBerubahId = \App\Models\DetailProduct::whereIn('id', $produkBerubah)
+                    ->pluck('product_id')
+                    ->unique()
+                    ->toArray();
+
+                $waMessage = Carbon::now()->format('d F Y') . "\n\n";
+
+                // Group by brand langsung
+                $groupedByBrand = $products->groupBy(function ($product) {
+                    return $product->brand->brand ?? 'Tanpa Brand';
+                });
+
+                foreach ($groupedByBrand as $brandName => $productsByBrand) {
+                    $waMessage .= strtoupper($brandName) . "\n";
+
+                    foreach ($productsByBrand as $product) {
+                        $totalStok = $product->detailProducts->sum('stok');
+                        $desc = trim($product->nama_produk);
+                        $produkId = $product->id;
+
+                        $label = in_array($produkId, $produkBerubahId) ? '' : ' ok';
+
+                        $waMessage .= "{$desc} {$totalStok} pcs{$label}\n";
+                    }
+
+                    $waMessage .= "\n";
+                }
+            @endphp
+
+            <textarea id="waMessageText" class="d-none">{{ $waMessage }}</textarea>
+            <div id="wa-output" class="d-none">{{ $waMessage }}</div>
+
+            <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const dateInput = document.getElementById('last_report_date');
+                    const waOutputDiv = document.getElementById('wa-output');
+
+                    dateInput.addEventListener('change', function() {
+                        const selectedDate = this.value;
+
+                        fetch(`?last_report_date=${selectedDate}`, {
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(res => res.text())
+                            .then(html => {
+                                const tempDiv = document.createElement('div');
+                                tempDiv.innerHTML = html;
+
+                                const newMessage = tempDiv.querySelector('#wa-output')?.textContent || '';
+
+                                document.getElementById('waMessageText').value = newMessage;
+                                waOutputDiv.textContent = newMessage;
+
+                                // Salin otomatis ke clipboard
+                                navigator.clipboard.writeText(newMessage).then(() => {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Pesan disalin!',
+                                        text: `Data berdasarkan ${selectedDate} telah disalin ke clipboard.`,
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    });
+                                });
+                            });
+                    });
+                });
+
+                function copyWA() {
+                    const textArea = document.getElementById('waMessageText');
+                    navigator.clipboard.writeText(textArea.value).then(() => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Disalin!',
+                            text: 'Pesan berhasil disalin ke clipboard.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    });
+                }
+            </script>
 
             <ul class="list-group mb-5" id="product-list">
 

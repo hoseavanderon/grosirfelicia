@@ -16,7 +16,7 @@ class KelolaProdukController extends Controller
     public function index()
     {
         $totalProduct = Product::where('user_id', Auth::id())->count();
-        $totalCategory = Category::count(); // Kalau kategori tidak terkait user, bisa tetap seperti ini
+        $totalCategory = Category::count(); 
 
         $today = Carbon::today();
         $oneMonthLater = $today->copy()->addMonth();
@@ -33,14 +33,9 @@ class KelolaProdukController extends Controller
             ->get();
 
         $lowStock = Product::where('user_id', Auth::id())
-            ->whereHas('detailProducts', function ($query) {
-                $query->where('stok', '<', 30)
-                    ->where('stok', '>', 0);
-            })
-            ->with(['detailProducts' => function ($query) {
-                $query->where('stok', '<', 30)
-                    ->where('stok', '>', 0);
-            }])
+            ->withSum('detailProducts', 'stok')
+            ->having('detail_products_sum_stok', '<', 30)
+            ->having('detail_products_sum_stok', '>', 0) 
             ->get();
 
         $startOfYear = Carbon::now()->startOfYear();
@@ -49,16 +44,16 @@ class KelolaProdukController extends Controller
         $bestSellers = DB::table('detail_transactions as dt')
             ->join('detail_products as dp', 'dt.detail_product_id', '=', 'dp.id')
             ->join('products as p', 'dp.product_id', '=', 'p.id')
-            ->select('dt.detail_product_id', DB::raw('SUM(dt.pcs) as total_terjual'))
+            ->select('p.id as product_id', DB::raw('SUM(dt.pcs) as total_terjual'))
             ->whereBetween('dt.created_at', [$startOfYear, $endOfYear])
             ->whereNull('dt.deleted_at')
             ->where('p.user_id', Auth::id())
-            ->groupBy('dt.detail_product_id')
+            ->groupBy('p.id')
             ->orderByDesc('total_terjual')
             ->limit(5)
             ->get();
 
-        $bestSellingProducts = Product::whereIn('id', $bestSellers->pluck('detail_product_id'))
+        $bestSellingProducts = Product::whereIn('id', $bestSellers->pluck('product_id'))
             ->where('user_id', Auth::id())
             ->get()
             ->keyBy('id');
@@ -109,11 +104,12 @@ class KelolaProdukController extends Controller
     {
         $keyword = $request->get('cari');
 
-        $query = Product::with('detailProducts')
-            ->where('user_id', Auth::id());
+        $query = Product::with(['detailProducts' => fn($q) => $q->where('stok', '>', 0)])
+            ->where('user_id', Auth::id())
+            ->whereHas('detailProducts', fn($q) => $q->where('stok', '>', 0));
 
         if ($keyword) {
-            $query->where('nama_produk', 'LIKE', "%$keyword%");
+            $query->where('nama_produk', 'LIKE', "%{$keyword}%");
         }
 
         $products = $query->get();
@@ -129,12 +125,18 @@ class KelolaProdukController extends Controller
         $perPage = 5;
 
         $query = Product::where('user_id', Auth::id())
-            ->whereHas('detailProducts', function ($query) {
-                $query->where('stok', '>', 0);
-            })
-            ->with(['detailProducts' => function ($query) {
-                $query->where('stok', '>', 0);
-            }]);
+            ->whereHas('detailProducts', fn($q) => $q->where('stok', '>', 0))
+            ->with([
+                'detailProducts' => fn($q) => $q->where('stok', '>', 0),
+                'brand',
+                'category'   
+            ])
+            ->leftJoin('brands', 'products.brand_id', '=', 'brands.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->orderBy('brands.id', 'ASC')    
+            ->orderBy('categories.id', 'ASC')  
+            ->orderBy('products.id', 'ASC')
+            ->select('products.*');
 
         if ($keyword) {
             $query->where('nama_produk', 'LIKE', "%$keyword%");
@@ -147,6 +149,7 @@ class KelolaProdukController extends Controller
             'next_page_url' => $products->nextPageUrl()
         ]);
     }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -182,5 +185,44 @@ class KelolaProdukController extends Controller
         ]);
     
         return redirect()->route('kelola.produk.kategori')->with('success', 'Kategori berhasil ditambahkan!');
+    }
+
+    public function waMessage(Request $request)
+    {
+        $lastReportDate = $request->last_report_date
+            ? Carbon::parse($request->last_report_date)->startOfDay()
+            : Carbon::now()->subDay()->startOfDay();
+
+        $produkBerubah = \App\Models\DetailTransaction::whereDate('created_at', '>', $lastReportDate)
+            ->pluck('detail_product_id')
+            ->unique()
+            ->toArray();
+
+        $produkBerubahId = \App\Models\DetailProduct::whereIn('id', $produkBerubah)
+            ->pluck('product_id')
+            ->unique()
+            ->toArray();
+
+        $products = Product::with('brand', 'detailProducts')->get();
+
+        $waMessage = Carbon::now()->format('d F Y') . "\n\n";
+
+        $groupedByBrand = $products->groupBy(fn ($product) => $product->brand->brand ?? 'Tanpa Brand');
+
+        foreach ($groupedByBrand as $brandName => $productsByBrand) {
+            $waMessage .= strtoupper($brandName) . "\n";
+            foreach ($productsByBrand as $product) {
+                $totalStok = $product->detailProducts->sum('stok');
+                $desc = trim($product->nama_produk);
+                $produkId = $product->id;
+                $label = in_array($produkId, $produkBerubahId) ? '' : ' ok';
+                $waMessage .= "{$desc} {$totalStok} pcs{$label}\n";
+            }
+            $waMessage .= "\n";
+        }
+
+        return response()->json([
+            'wa_message' => $waMessage,
+        ]);
     }
 }

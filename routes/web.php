@@ -29,6 +29,7 @@ Route::group(['middleware' => 'auth'], function () {
     Route::get('/kelola-produk', [KelolaProdukController::class, 'index'])->name('kelola.produk.index');
     Route::get('/kelola-produk/daftar-produk', [KelolaProdukController::class, 'produk'])->name('kelola.produk.daftar');
     Route::get('/kelola-produk/kategori', [KelolaProdukController::class, 'kategori'])->name('kelola.produk.kategori');
+    Route::get('/produk/wa-message', [KelolaProdukController::class, 'waMessage']);
 
     Route::get('/product/create', [KelolaProdukController::class, 'create'])->name('product.create');
     Route::post('/product', [KelolaProdukController::class, 'store'])->name('product.store');
