@@ -69,13 +69,19 @@ class RiwayatTransaksiController extends Controller
         $endDate = \Carbon\Carbon::parse($endDate)->endOfDay();
 
         $transactions = Transaction::with([
-                'detailTransactions.detailProduct.product',
-                'customer'
-            ])
-            ->where('user_id', Auth::id())
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->orderBy('created_at', 'asc')
-            ->get();
+            'detailTransactions.detailProduct' => function ($query) {
+                $query->withTrashed()->with([
+                    'product' => function ($q) {
+                        $q->withTrashed();
+                    }
+                ]);
+            },
+            'customer'
+        ])
+        ->where('user_id', Auth::id())
+        ->whereBetween('created_at', [$startDate, $endDate])
+        ->orderBy('created_at', 'asc')
+        ->get();
 
         $totalUangDiterima = $transactions->sum(fn ($trx) =>
             $trx->detailTransactions->sum(fn ($d) => $d->harga_jual * $d->pcs)
@@ -86,10 +92,12 @@ class RiwayatTransaksiController extends Controller
 
     public function edit(Transaction $transaction)
     {
-        $detailProducts = DetailProduct::with('product')
-            ->where('stok', '>', 0)
-            ->whereHas('product')  // Tambah filter ini!
-            ->get();
+        $detailProducts = DetailProduct::with(['product' => function ($query) {
+            $query->withTrashed();
+        }])
+        ->where('stok', '>', 0)
+        ->whereHas('product')
+        ->get();
 
         return view('transactions.edit', [
             'transaction' => $transaction->load('detailTransactions.detailProduct.product', 'customer'),
@@ -102,10 +110,10 @@ class RiwayatTransaksiController extends Controller
         DB::transaction(function () use ($request, $transaction) {
             if ($request->filled('deleted_ids')) {
                 foreach ($request->deleted_ids as $deletedId) {
-                    $detail = DetailTransaction::find($deletedId);
+                    $detail = DetailTransaction::withTrashed()->find($deletedId);
                     if ($detail) {
                         // Kembalikan stok
-                        $detail->detailProduct->increment('stok', $detail->pcs);
+                        $detail->detailProduct()->withTrashed()->first()->increment('stok', $detail->pcs);
 
                         // Hapus dari DB
                         $detail->delete();
@@ -116,16 +124,16 @@ class RiwayatTransaksiController extends Controller
             foreach ($request->items as $itemData) {
                 if (isset($itemData['id'])) {
                     // 🟢 Update item lama
-                    $detail = DetailTransaction::find($itemData['id']);
+                    $detail = DetailTransaction::withTrashed()->find($itemData['id']);
 
                     $oldPcs = $detail->pcs;
                     $newPcs = $itemData['pcs'];
                     $selisih = $newPcs - $oldPcs;
 
                     if ($selisih > 0) {
-                        $detail->detailProduct->decrement('stok', $selisih);
+                        $detail->detailProduct()->withTrashed()->first()->decrement('stok', $selisih);
                     } elseif ($selisih < 0) {
-                        $detail->detailProduct->increment('stok', abs($selisih));
+                        $detail->detailProduct()->withTrashed()->first()->increment('stok', abs($selisih));
                     }
 
                     $detail->update([
@@ -134,7 +142,7 @@ class RiwayatTransaksiController extends Controller
                     ]);
                 } else {
                     // 🆕 Tambah item baru
-                    $detailProduct = DetailProduct::find($itemData['detail_product_id']);
+                    $detailProduct = DetailProduct::withTrashed()->find($itemData['detail_product_id']);
 
                     // Kurangi stok
                     $detailProduct->decrement('stok', $itemData['pcs']);
@@ -157,8 +165,10 @@ class RiwayatTransaksiController extends Controller
         DB::beginTransaction();
 
         try {
-            // Ambil transaksi
-            $transaction = Transaction::with('detailTransactions')->findOrFail($id);
+            // Ambil transaksi dengan detailTransactions dan detailProduct termasuk yang soft deleted
+            $transaction = Transaction::with(['detailTransactions.detailProduct' => function ($query) {
+                $query->withTrashed();
+            }])->findOrFail($id);
 
             // Kembalikan stok dari setiap detail transaksi
             foreach ($transaction->detailTransactions as $detail) {

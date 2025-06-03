@@ -12,32 +12,43 @@ class BarangMasukController extends Controller
 {
     public function index()
     {
-        $detailProducts = DetailProduct::with('product')
-            ->whereHas('product', function ($query) {
-                $query->where('user_id', Auth::id());
-            })
-            ->get();
+        $products = Product::where('user_id', Auth::id())->get();
 
-        return view('barang-masuk', compact('detailProducts'));
+        return view('barang-masuk', compact('products'));
     }
 
     public function tambahKeProdukLama(Request $request)
     {
         $request->validate([
-            'items.*.detail_product_id' => 'required|exists:detail_products,id',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.expired' => 'required|date',
             'items.*.pcs' => 'required|integer|min:1',
         ]);
 
         foreach ($request->items as $item) {
-            $detail = DetailProduct::find($item['detail_product_id']);
-            $detail->stok += $item['pcs'];
-            $detail->save();
+            // Cari detail produk dengan product_id dan expired yang sama
+            $detail = DetailProduct::where('product_id', $item['product_id'])
+                ->whereDate('expired', $item['expired'])
+                ->first();
+
+            if ($detail) {
+                // Kalau ada, update stok
+                $detail->stok += $item['pcs'];
+                $detail->save();
+            } else {
+                // Kalau belum ada, buat baru
+                $detail = DetailProduct::create([
+                    'product_id' => $item['product_id'],
+                    'expired' => $item['expired'],
+                    'stok' => $item['pcs'],
+                ]);
+            }
 
             // Catat riwayat barang masuk
             BarangMasukLog::create([
                 'detail_product_id' => $detail->id,
                 'jumlah_masuk' => $item['pcs'],
-                'tanggal_masuk' => now(),   
+                'tanggal_masuk' => now(),
             ]);
         }
 

@@ -48,12 +48,12 @@
                                 </div>
                                 <div class="col-md-2">
                                     <label>Jumlah (pcs)</label>
-                                    <input type="number" name="items[{{ $i }}][pcs]" class="form-control"
+                                    <input type="text" name="items[{{ $i }}][pcs]" class="form-control"
                                         value="{{ $item->pcs }}" min="1" required>
                                 </div>
                                 <div class="col-md-3">
                                     <label>Harga Jual</label>
-                                    <input type="number" name="items[{{ $i }}][harga_jual]"
+                                    <input type="text" name="items[{{ $i }}][harga_jual]"
                                         class="form-control" value="{{ $item->harga_jual }}" min="0" required>
                                 </div>
                                 <div class="col-md-2 d-flex align-items-end">
@@ -93,11 +93,11 @@
                     </div>
                     <div class="col-md-2">
                         <label>Jumlah (pcs)</label>
-                        <input type="number" id="new-pcs" class="form-control" min="1">
+                        <input type="text" id="new-pcs" class="form-control" min="1">
                     </div>
                     <div class="col-md-3">
                         <label>Harga Jual</label>
-                        <input type="number" id="new-harga" class="form-control" min="0">
+                        <input type="text" id="new-harga" class="form-control" min="0">
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-success btn-block" id="add-product">Tambah</button>
@@ -124,8 +124,8 @@
             let subtotal = 0;
 
             document.querySelectorAll('.product-item').forEach(item => {
-                const pcs = parseInt(item.querySelector('input[name$="[pcs]"]')?.value || 0);
-                const harga = parseInt(item.querySelector('input[name$="[harga_jual]"]')?.value || 0);
+                const pcs = parseFormattedNumber(item.querySelector('input[name$="[pcs]"]')?.value || '0');
+                const harga = parseFormattedNumber(item.querySelector('input[name$="[harga_jual]"]')?.value || '0');
                 totalPcs += pcs;
                 subtotal += pcs * harga;
             });
@@ -133,6 +133,36 @@
             document.getElementById('total-pcs').textContent = totalPcs;
             document.getElementById('subtotal').textContent = subtotal.toLocaleString('id-ID');
         }
+
+        function formatNumberInput(input) {
+            // Hapus semua karakter non-digit
+            let value = input.value.replace(/\D/g, '');
+
+            if (value === '') {
+                input.value = '';
+                return;
+            }
+
+            // Format dengan pemisah ribuan, pakai locale 'id-ID'
+            input.value = parseInt(value).toLocaleString('id-ID');
+        }
+
+        function parseFormattedNumber(str) {
+            // Hapus titik (pemenggal ribuan) lalu parse ke int
+            return parseInt(str.replace(/\./g, '')) || 0;
+        }
+
+        document.addEventListener('input', function(e) {
+            if (
+                e.target.name?.includes('[pcs]') ||
+                e.target.name === 'new-pcs' ||
+                e.target.name?.includes('[harga_jual]') ||
+                e.target.id === 'new-harga'
+            ) {
+                formatNumberInput(e.target);
+                updateSummary();
+            }
+        });
 
         document.getElementById('new-product').addEventListener('change', function() {
             const selected = this.options[this.selectedIndex];
@@ -181,11 +211,11 @@
                 </div>
                 <div class="col-md-2">
                     <label>Jumlah (pcs)</label>
-                    <input type="number" name="items[${itemIndex}][pcs]" class="form-control" value="${pcs}" min="1" required>
+                    <input type="text" name="items[${itemIndex}][pcs]" class="form-control" value="${pcs}" min="1" required>
                 </div>
                 <div class="col-md-3">
                     <label>Harga Jual</label>
-                    <input type="number" name="items[${itemIndex}][harga_jual]" class="form-control" value="${harga}" min="0" required>
+                    <input type="text" name="items[${itemIndex}][harga_jual]" class="form-control" value="${harga}" min="0" required>
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
                     <button type="button" class="btn btn-danger btn-block remove-item">Hapus</button>
@@ -263,6 +293,18 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    // Hapus pemisah ribuan dari semua input harga_jual dan pcs
+                    document.querySelectorAll('input[name$="[harga_jual]"], input[name$="[pcs]"]').forEach(
+                        input => {
+                            input.value = input.value.replace(/\./g, '');
+                        });
+
+                    // Juga untuk produk baru jika ada
+                    const newHarga = document.getElementById('new-harga');
+                    if (newHarga) newHarga.value = newHarga.value.replace(/\./g, '');
+                    const newPcs = document.getElementById('new-pcs');
+                    if (newPcs) newPcs.value = newPcs.value.replace(/\./g, '');
+
                     document.getElementById('edit-transaction-form').submit();
                 }
             });

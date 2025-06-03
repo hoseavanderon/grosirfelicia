@@ -16,32 +16,36 @@
                             <thead>
                                 <tr>
                                     <th>Produk</th>
+                                    <th>Expired</th>
                                     <th>Jumlah (pcs)</th>
-                                    <th>Aksi</th> {{-- Hapus kolom Harga --}}
+                                    <th>Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody id="existing-body">
+                            <tbody id="items-body">
                                 <tr>
                                     <td>
-                                        <select name="items[0][detail_product_id]" class="form-control" required>
-                                            <option value="">-- Pilih Detail Produk --</option>
-                                            @foreach ($detailProducts as $dp)
-                                                <option value="{{ $dp->id }}">
-                                                    {{ $dp->product->nama_produk }} - Stok: {{ $dp->stok }} - Exp:
-                                                    {{ $dp->expired ? \Carbon\Carbon::parse($dp->expired)->format('d-m-Y') : '-' }}
-                                                </option>
+                                        <select name="items[0][product_id]" class="form-control" required>
+                                            <option value="">-- Pilih Produk --</option>
+                                            @foreach ($products as $product)
+                                                <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
                                             @endforeach
                                         </select>
                                     </td>
-                                    <td><input type="number" name="items[0][pcs]" class="form-control" required></td>
-                                    <td><button type="button" class="btn btn-danger btn-remove">Hapus</button></td>
+                                    <td>
+                                        <input type="date" name="items[0][expired]" class="form-control" required>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="items[0][pcs]" class="form-control" min="1"
+                                            required>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-danger btn-remove">Hapus</button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
-                        <div class="d-flex">
-                            <button type="button" class="btn btn-secondary" id="add-existing-row">+ Tambah Baris</button>
-                            <button type="submit" class="btn btn-primary ml-3">Simpan Barang Masuk</button>
-                        </div>
+                        <button type="button" id="add-row" class="btn btn-secondary">+ Tambah Baris</button>
+                        <button type="submit" class="btn btn-primary">Simpan Barang Masuk</button>
                     </form>
                 </div>
             </div>
@@ -58,31 +62,32 @@
             }
         });
 
-        let existingIndex = 1;
-        let newIndex = 1;
-
-        // Tambah baris untuk produk yang sudah ada
-        $('#add-existing-row').click(function() {
-            $('#existing-body').append(`
-                <tr>
-                    <td>
-                        <select name="items[${existingIndex}][detail_product_id]" class="form-control" required>
-                            <option value="">-- Pilih Detail Produk --</option>
-                            @foreach ($detailProducts as $dp)
-                                <option value="{{ $dp->id }}">
-                                    {{ $dp->product->nama_produk }} - Exp: {{ $dp->expired ? \Carbon\Carbon::parse($dp->expired)->format('d-m-Y') : '-' }} - Stok: {{ $dp->stok }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </td>
-                    <td><input type="number" name="items[${existingIndex}][pcs]" class="form-control" required></td>
-                    <td><button type="button" class="btn btn-danger btn-remove">Hapus</button></td>
-                </tr>
-            `);
-            existingIndex++;
+        let index = 1;
+        $('#add-row').click(function() {
+            $('#items-body').append(`
+        <tr>
+            <td>
+                <select name="items[${index}][product_id]" class="form-control" required>
+                    <option value="">-- Pilih Produk --</option>
+                    @foreach ($products as $product)
+                        <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
+                    @endforeach
+                </select>
+            </td>
+            <td>
+                <input type="date" name="items[${index}][expired]" class="form-control" required>
+            </td>
+            <td>
+                <input type="number" name="items[${index}][pcs]" class="form-control" min="1" required>
+            </td>
+            <td>
+                <button type="button" class="btn btn-danger btn-remove">Hapus</button>
+            </td>
+        </tr>
+    `);
+            index++;
         });
 
-        // Hapus baris dinamis
         $(document).on('click', '.btn-remove', function() {
             $(this).closest('tr').remove();
         });

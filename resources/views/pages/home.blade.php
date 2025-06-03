@@ -442,9 +442,25 @@
                     }
 
                     document.querySelectorAll('.price-input').forEach(input => {
+                        input.addEventListener('input', function() {
+                            // Hapus semua karakter non-digit dulu
+                            let value = this.value.replace(/\D/g, '');
+
+                            if (value === '') {
+                                this.value = '';
+                                return;
+                            }
+
+                            // Format dengan pemisah ribuan
+                            this.value = parseInt(value).toLocaleString('id-ID');
+                        });
+
                         input.addEventListener('change', function() {
+                            // Saat perubahan selesai, simpan harga ke cartItems tanpa format
                             const key = this.getAttribute('data-key');
-                            const newPrice = parseInt(this.value);
+                            // Hapus pemisah ribuan sebelum parsing
+                            const rawValue = this.value.replace(/\./g, '');
+                            const newPrice = parseInt(rawValue);
 
                             if (isNaN(newPrice) || newPrice <= 0) {
                                 Swal.fire({
@@ -454,7 +470,7 @@
                                     timer: 2000,
                                     showConfirmButton: false
                                 });
-                                this.value = cartItems[key].price;
+                                this.value = cartItems[key].price.toLocaleString('id-ID');
                                 return;
                             }
 
@@ -463,6 +479,12 @@
                             saveCartToLocalStorage();
                             cartBox.click(); // untuk re-render total
                         });
+
+                        // Inisialisasi format saat load
+                        const key = input.getAttribute('data-key');
+                        if (cartItems[key]) {
+                            input.value = cartItems[key].price.toLocaleString('id-ID');
+                        }
                     });
 
                     document.querySelectorAll('.btn-increase').forEach(btn => {

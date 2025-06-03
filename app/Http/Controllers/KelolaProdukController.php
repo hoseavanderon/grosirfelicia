@@ -53,7 +53,7 @@ class KelolaProdukController extends Controller
             ->limit(5)
             ->get();
 
-        $bestSellingProducts = Product::whereIn('id', $bestSellers->pluck('product_id'))
+        $bestSellingProducts = Product::withTrashed()->whereIn('id', $bestSellers->pluck('product_id'))
             ->where('user_id', Auth::id())
             ->get()
             ->keyBy('id');
