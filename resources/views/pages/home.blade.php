@@ -85,6 +85,13 @@
             -ms-user-select: none;
             /* IE/Edge */
         }
+
+        .list-group-item,
+        .list-group-item * {
+            user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+        }
     </style>
 
     <section class="section">
