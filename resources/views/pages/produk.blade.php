@@ -27,43 +27,38 @@
 
             @php
                 use Carbon\Carbon;
-                // Ambil dari form input atau default ke kemarin
+
                 $lastReportDate = request('last_report_date')
                     ? Carbon::parse(request('last_report_date'))->startOfDay()
                     : Carbon::now()->subDay()->startOfDay();
 
-                // Ambil semua ID detail produk yang stok-nya berubah sejak last report
-                $produkBerubah = \App\Models\DetailTransaction::whereDate(
-                    'created_at',
-                    '=',
-                    $lastReportDate->toDateString(),
-                )
-                    ->pluck('detail_product_id')
-                    ->unique()
-                    ->toArray();
+                use Illuminate\Database\Eloquent\Builder;
 
-                $produkBerubahId = \App\Models\DetailProduct::whereIn('id', $produkBerubah)
-                    ->pluck('product_id')
-                    ->unique()
-                    ->toArray();
+                $produkBerubah = \App\Models\Product::with(['brand', 'detailProducts'])
+                    ->whereHas('detailProducts.detailTransactions', function (Builder $query) use ($lastReportDate) {
+                        $query->whereDate('created_at', '=', $lastReportDate->toDateString());
+                    })
+                    ->get();
+
+                $allProducts = \App\Models\Product::with(['brand', 'detailProducts.detailTransactions'])->get();
 
                 $waMessage = Carbon::now()->format('d F Y') . "\n\n";
 
-                $products = $products->sortBy([['brand.id', 'asc'], ['category_name', 'asc'], ['id', 'asc']]);
+                $grouped = $allProducts->groupBy(fn($product) => $product->brand->brand ?? 'Tanpa Brand');
 
-                $groupedByBrand = $products->groupBy(function ($product) {
-                    return $product->brand->brand ?? 'Tanpa Brand';
-                });
-
-                foreach ($groupedByBrand as $brandName => $productsByBrand) {
+                foreach ($grouped as $brandName => $productsByBrand) {
                     $waMessage .= strtoupper($brandName) . "\n";
 
                     foreach ($productsByBrand as $product) {
                         $totalStok = $product->detailProducts->sum('stok');
-                        $desc = trim($product->nama_produk);
-                        $produkId = $product->id;
 
-                        $label = in_array($produkId, $produkBerubahId) ? '' : ' ok';
+                        $hasTransaction = $product->detailProducts
+                            ->flatMap(fn($dp) => $dp->detailTransactions)
+                            ->contains(fn($dt) => $dt->created_at->toDateString() == $lastReportDate->toDateString());
+
+                        $label = $hasTransaction ? '' : ' ok';
+
+                        $desc = trim($product->nama_produk);
 
                         $waMessage .= "{$desc} {$totalStok} pcs{$label}\n";
                     }
