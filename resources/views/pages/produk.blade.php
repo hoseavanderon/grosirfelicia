@@ -35,7 +35,7 @@
                 // Ambil semua ID detail produk yang stok-nya berubah sejak last report
                 $produkBerubah = \App\Models\DetailTransaction::whereDate(
                     'created_at',
-                    '>',
+                    '=',
                     $lastReportDate->toDateString(),
                 )
                     ->pluck('detail_product_id')
@@ -49,7 +49,8 @@
 
                 $waMessage = Carbon::now()->format('d F Y') . "\n\n";
 
-                // Group by brand langsung
+                $products = $products->sortBy([['brand.id', 'asc'], ['category_name', 'asc'], ['id', 'asc']]);
+
                 $groupedByBrand = $products->groupBy(function ($product) {
                     return $product->brand->brand ?? 'Tanpa Brand';
                 });

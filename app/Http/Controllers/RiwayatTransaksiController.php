@@ -40,7 +40,7 @@ class RiwayatTransaksiController extends Controller
         ])
         ->where('user_id', $userId)
         ->whereBetween('created_at', [$startDate, $endDate])
-        ->orderBy('created_at', 'asc')
+        ->orderBy('created_at', 'desc')
         ->get();
 
         $totalUangDiterima = $transactions->sum(function($transaction) {
@@ -80,7 +80,10 @@ class RiwayatTransaksiController extends Controller
 
     public function edit(Transaction $transaction)
     {
-        $detailProducts = DetailProduct::with('product')->where('stok', '>', 0)->get();
+        $detailProducts = DetailProduct::with('product')
+            ->where('stok', '>', 0)
+            ->whereHas('product')  // Tambah filter ini!
+            ->get();
 
         return view('transactions.edit', [
             'transaction' => $transaction->load('detailTransactions.detailProduct.product', 'customer'),

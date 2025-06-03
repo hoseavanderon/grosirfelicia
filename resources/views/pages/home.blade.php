@@ -284,6 +284,8 @@
 
                 items.forEach(item => {
                     let pressTimer;
+                    let longPressFired = false;
+
                     const name = item.getAttribute('data-name');
                     const detailProductId = item.getAttribute('data-detail-product-id');
                     const price = parseInt(item.getAttribute('data-price'));
@@ -329,6 +331,50 @@
                     item.addEventListener('mouseup', () => clearTimeout(pressTimer));
                     item.addEventListener('mouseleave', () => clearTimeout(
                         pressTimer));
+
+                    // Touch events (untuk mobile)
+                    item.addEventListener('touchstart', function(e) {
+                        pressTimer = setTimeout(() => {
+                            if (navigator.vibrate) {
+                                navigator.vibrate(50);
+                            }
+
+                            document.getElementById('modalProductName').textContent =
+                                `Nama Produk: ${name}`;
+                            document.getElementById('modalProductPrice').textContent =
+                                `Harga: Rp ${price.toLocaleString()}`;
+                            document.getElementById('pcsInput').value = '';
+                            $('#productModal').modal('show');
+
+                            setTimeout(() => {
+                                document.getElementById('pcsInput').focus();
+                            }, 500);
+
+                            document.getElementById('addToCartFromModal').onclick =
+                                async function() {
+                                    const pcs = parseInt(document.getElementById(
+                                        'pcsInput').value || '1');
+                                    if (!cartItems[key]) {
+                                        cartItems[key] = {
+                                            detail_product_id: detailProductId,
+                                            name,
+                                            price,
+                                            qty: pcs,
+                                            expired
+                                        };
+                                    } else {
+                                        cartItems[key].qty += pcs;
+                                        updateCartDisplay();
+                                        saveCartToLocalStorage();
+                                    }
+                                    updateCartDisplay();
+                                    $('#productModal').modal('hide');
+                                };
+                        }, 600);
+                    });
+
+                    item.addEventListener('touchend', () => clearTimeout(pressTimer));
+                    item.addEventListener('touchcancel', () => clearTimeout(pressTimer));
 
                     item.addEventListener('click', () => {
                         const key = `${name}-${expired}`;
@@ -505,54 +551,67 @@
                         return;
                     }
 
-                    const cartItemsArray = Object.keys(cartItems).map(key => cartItems[key]);
+                    // Tampilkan konfirmasi SweetAlert
+                    Swal.fire({
+                        title: 'Konfirmasi',
+                        text: 'Apakah Anda yakin ingin melanjutkan checkout?',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: 'Ya, Lanjutkan!',
+                        cancelButtonText: 'Batal'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Lanjutkan proses checkout
+                            const cartItemsArray = Object.keys(cartItems).map(key => cartItems[
+                                key]);
 
-                    fetch('/checkout', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')
-                                    .getAttribute('content'),
-                            },
-                            body: JSON.stringify({
-                                customer_id: customerId,
-                                cart_items: cartItemsArray
-                            })
-                        })
-                        .then(async response => {
-                            const data = await response.json();
+                            fetch('/checkout', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': document.querySelector(
+                                            'meta[name="csrf-token"]').getAttribute(
+                                            'content'),
+                                    },
+                                    body: JSON.stringify({
+                                        customer_id: customerId,
+                                        cart_items: cartItemsArray
+                                    })
+                                })
+                                .then(async response => {
+                                    const data = await response.json();
 
-                            if (!response.ok) {
-                                // Tangani error (misalnya stok tidak cukup)
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Gagal Checkout!',
-                                    html: data?.message ||
-                                        'Terjadi kesalahan saat memproses checkout.',
+                                    if (!response.ok) {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Gagal Checkout!',
+                                            html: data?.message ||
+                                                'Terjadi kesalahan saat memproses checkout.',
+                                        });
+                                        throw new Error(data?.message ||
+                                            'Checkout error');
+                                    }
+
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Transaksi berhasil!',
+                                        timer: 1000,
+                                        showConfirmButton: false
+                                    }).then(() => {
+                                        window.location.href =
+                                            '/riwayat-transaksi';
+                                    });
+
+                                    cartItems = {};
+                                    localStorage.removeItem('cartItems');
+                                    updateCartDisplay();
+                                    $('#cartDetailsModal').modal('hide');
+                                })
+                                .catch(error => {
+                                    console.error('Checkout error:', error);
                                 });
-                                throw new Error(data?.message || 'Checkout error');
-                            }
-
-                            // Jika sukses
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Transaksi berhasil!',
-                                timer: 1000,
-                                showConfirmButton: false
-                            }).then(() => {
-                                window.location.href = '/riwayat-transaksi';
-                            });
-
-                            // Reset cart dan tampilan
-                            cartItems = {};
-                            localStorage.removeItem('cartItems');
-                            updateCartDisplay();
-                            $('#cartDetailsModal').modal('hide');
-                        })
-                        .catch(error => {
-                            console.error('Checkout error:', error);
-                            // Jangan munculkan SweetAlert lagi di sini karena sudah ditangani di atas
-                        });
+                        }
+                    });
                 };
             });
 
