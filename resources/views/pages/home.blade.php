@@ -76,6 +76,15 @@
             padding-bottom: 100px !important;
             /* Sesuaikan dengan tinggi cart-box */
         }
+
+        .product-item {
+            user-select: none;
+            /* Disable text selection */
+            -webkit-user-select: none;
+            /* Safari/iOS */
+            -ms-user-select: none;
+            /* IE/Edge */
+        }
     </style>
 
     <section class="section">
