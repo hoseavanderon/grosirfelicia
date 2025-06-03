@@ -35,7 +35,13 @@ class RiwayatTransaksiController extends Controller
         $userId = Auth::id();
 
         $transactions = Transaction::with([
-            'detailTransactions.detailProduct.product',
+            'detailTransactions.detailProduct' => function ($query) {
+                $query->withTrashed()->with([
+                    'product' => function ($q) {
+                        $q->withTrashed(); // optional, kalau Product juga pakai soft delete
+                    }
+                ]);
+            },
             'customer'
         ])
         ->where('user_id', $userId)
