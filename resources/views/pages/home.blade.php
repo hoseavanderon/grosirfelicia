@@ -348,45 +348,65 @@
                     item.addEventListener('mouseleave', () => clearTimeout(
                         pressTimer));
 
-                    // Touch events (untuk mobile)
+                    let isScrolling = false;
+                    let startX, startY;
+
                     item.addEventListener('touchstart', function(e) {
+                        isScrolling = false;
+                        const touch = e.touches[0];
+                        startX = touch.clientX;
+                        startY = touch.clientY;
+
                         pressTimer = setTimeout(() => {
-                            if (navigator.vibrate) {
-                                navigator.vibrate(50);
-                            }
+                            if (!isScrolling) {
+                                if (navigator.vibrate) {
+                                    navigator.vibrate(50);
+                                }
 
-                            document.getElementById('modalProductName').textContent =
-                                `Nama Produk: ${name}`;
-                            document.getElementById('modalProductPrice').textContent =
-                                `Harga: Rp ${price.toLocaleString()}`;
-                            document.getElementById('pcsInput').value = '';
-                            $('#productModal').modal('show');
+                                document.getElementById('modalProductName').textContent =
+                                    `Nama Produk: ${name}`;
+                                document.getElementById('modalProductPrice').textContent =
+                                    `Harga: Rp ${price.toLocaleString()}`;
+                                document.getElementById('pcsInput').value = '';
+                                $('#productModal').modal('show');
 
-                            setTimeout(() => {
-                                document.getElementById('pcsInput').focus();
-                            }, 500);
+                                setTimeout(() => {
+                                    document.getElementById('pcsInput').focus();
+                                }, 500);
 
-                            document.getElementById('addToCartFromModal').onclick =
-                                async function() {
-                                    const pcs = parseInt(document.getElementById(
-                                        'pcsInput').value || '1');
-                                    if (!cartItems[key]) {
-                                        cartItems[key] = {
-                                            detail_product_id: detailProductId,
-                                            name,
-                                            price,
-                                            qty: pcs,
-                                            expired
-                                        };
-                                    } else {
-                                        cartItems[key].qty += pcs;
+                                document.getElementById('addToCartFromModal').onclick =
+                                    async function() {
+                                        const pcs = parseInt(document.getElementById(
+                                            'pcsInput').value || '1');
+                                        if (!cartItems[key]) {
+                                            cartItems[key] = {
+                                                detail_product_id: detailProductId,
+                                                name,
+                                                price,
+                                                qty: pcs,
+                                                expired
+                                            };
+                                        } else {
+                                            cartItems[key].qty += pcs;
+                                            updateCartDisplay();
+                                            saveCartToLocalStorage();
+                                        }
                                         updateCartDisplay();
-                                        saveCartToLocalStorage();
-                                    }
-                                    updateCartDisplay();
-                                    $('#productModal').modal('hide');
-                                };
+                                        $('#productModal').modal('hide');
+                                    };
+                            }
                         }, 600);
+                    });
+
+                    item.addEventListener('touchmove', function(e) {
+                        const touch = e.touches[0];
+                        const deltaX = Math.abs(touch.clientX - startX);
+                        const deltaY = Math.abs(touch.clientY - startY);
+
+                        if (deltaX > 10 || deltaY > 10) {
+                            isScrolling = true;
+                            clearTimeout(pressTimer);
+                        }
                     });
 
                     item.addEventListener('touchend', () => clearTimeout(pressTimer));
