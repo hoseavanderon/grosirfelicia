@@ -21,8 +21,8 @@ class LaporanController extends Controller
 
         $range = explode(' to ', $tanggal); 
 
-        $start = $range[0];
-        $end = $range[1];
+        $start = $range[0] . ' 00:00:00';
+        $end = $range[1] . ' 23:59:59';
 
         $totalTransaksi = \App\Models\Transaction::whereBetween('created_at', [$start, $end])->count();
 
