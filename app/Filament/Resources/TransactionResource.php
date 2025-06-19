@@ -145,7 +145,8 @@ class TransactionResource extends Resource
                 Tables\Columns\TextColumn::make('nomor')
                     ->label('No')
                     ->state(fn ($record, $livewire) =>
-                        ($livewire->getTableRecordsPerPage() * ($livewire->getTablePage() - 1)) + $livewire->getTableRecords()->search($record) + 1
+                        (int) $livewire->getTableRecordsPerPage() * ((int) $livewire->getTablePage() - 1)
+                        + $livewire->getTableRecords()->values()->search($record) + 1
                     ),
 
                 Tables\Columns\TextColumn::make('customer.nama_pelanggan')
@@ -223,9 +224,13 @@ class TransactionResource extends Resource
 
         $message .= "========================\n";
 
-        foreach ($record->detailTransactions as $item) {
-            $productName = $item->detailProduct->product->nama_produk;
-            $expired = \Carbon\Carbon::parse($item->detailProduct->expired)->format('d/m');
+       foreach ($record->detailTransactions as $item) {
+            $productName = $item->detailProduct->product->nama_produk ?? 'Produk tidak tersedia';
+
+            $expired = $item->detailProduct && $item->detailProduct->expired
+                ? \Carbon\Carbon::parse($item->detailProduct->expired)->format('d/m')
+                : 'Tidak Ada';
+
             $pcs = $item->pcs;
             $price = number_format($item->harga_jual, 0, ',', '.');
 
