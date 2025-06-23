@@ -20,12 +20,16 @@ class LaporanController extends Controller
             return response()->json(['error' => 'Tanggal wajib diisi'], 422);
         }
 
-        $range = explode(' to ', $tanggal);
-
-        $start = $range[0] . ' 00:00:00';
-        $end = $range[1] . ' 23:59:59';
-
         $userId = Auth::id();
+
+        if (str_contains($tanggal, ' to ')) {
+            $parts = explode(' to ', $tanggal);
+            $start = \Carbon\Carbon::parse($parts[0])->startOfDay();
+            $end = \Carbon\Carbon::parse($parts[1])->endOfDay();
+        } else {
+            $start = \Carbon\Carbon::parse($tanggal)->startOfDay();
+            $end = \Carbon\Carbon::parse($tanggal)->endOfDay();
+        }
 
         // Filter transaksi milik user
         $totalTransaksi = \App\Models\Transaction::whereBetween('created_at', [$start, $end])
@@ -57,5 +61,4 @@ class LaporanController extends Controller
             'jumlahBarangTerjual' => $jumlahBarangTerjual,
         ]);
     }
-
 }

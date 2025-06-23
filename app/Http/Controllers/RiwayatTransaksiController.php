@@ -18,11 +18,10 @@ class RiwayatTransaksiController extends Controller
         $tanggalFilter = $request->input('tanggal_riwayat');
 
         if ($tanggalFilter) {
-            $dates = explode(' to ', $tanggalFilter);
-
-            if(count($dates) === 2){
-                $startDate = Carbon::parse($dates[0])->startOfDay();
-                $endDate = Carbon::parse($dates[1])->endOfDay();
+            if (strpos($tanggalFilter, ' to ') !== false) {
+                [$start, $end] = explode(' to ', $tanggalFilter);
+                $startDate = Carbon::parse($start)->startOfDay();
+                $endDate = Carbon::parse($end)->endOfDay();
             } else {
                 $startDate = Carbon::parse($tanggalFilter)->startOfDay();
                 $endDate = Carbon::parse($tanggalFilter)->endOfDay();
@@ -63,10 +62,23 @@ class RiwayatTransaksiController extends Controller
         \Carbon\Carbon::setLocale('id');
         $tanggalRange = $request->tanggal_riwayat;
 
-        // Proses parsing tanggal
-        [$startDate, $endDate] = explode(' to ', str_replace(' to ', ' to ', $tanggalRange));
-        $startDate = \Carbon\Carbon::parse($startDate)->startOfDay();
-        $endDate = \Carbon\Carbon::parse($endDate)->endOfDay();
+        if ($tanggalRange && str_contains($tanggalRange, ' to ')) {
+            $parts = explode(' to ', $tanggalRange);
+            if (count($parts) === 2) {
+                $startDate = \Carbon\Carbon::parse($parts[0])->startOfDay();
+                $endDate = \Carbon\Carbon::parse($parts[1])->endOfDay();
+            } else {
+                // Fallback jika format tidak sesuai
+                $startDate = \Carbon\Carbon::today()->startOfDay();
+                $endDate = \Carbon\Carbon::today()->endOfDay();
+            }
+        } elseif ($tanggalRange) {
+            $startDate = \Carbon\Carbon::parse($tanggalRange)->startOfDay();
+            $endDate = \Carbon\Carbon::parse($tanggalRange)->endOfDay();
+        } else {
+            $startDate = \Carbon\Carbon::today()->startOfDay();
+            $endDate = \Carbon\Carbon::today()->endOfDay();
+        }
 
         $transactions = Transaction::with([
             'detailTransactions.detailProduct' => function ($query) {

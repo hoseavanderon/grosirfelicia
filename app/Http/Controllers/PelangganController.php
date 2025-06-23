@@ -24,8 +24,16 @@ class PelangganController extends Controller
 
         $tanggalRange = $request->get('tanggal_transaksi');
         $transactionsQuery = $customer->transactions()->with([
-            'detailTransactions.detailProduct.product',
-            'customer'
+            'detailTransactions.detailProduct' => function ($query) {
+                $query->withTrashed()->with([
+                    'product' => function ($q) {
+                        $q->withTrashed();
+                    }
+                ]);
+            },
+            'customer' => function ($q) {
+                $q->withTrashed();
+            }
         ]);
 
         if ($tanggalRange) {
@@ -41,9 +49,7 @@ class PelangganController extends Controller
         $transactions = $transactionsQuery->get();
 
         foreach ($transactions as $transaction) {
-            $transaction->subtotal = $transaction->detailTransactions->sum(function ($detail) {
-                return $detail->harga_jual * $detail->pcs;
-            });
+            $transaction->subtotal = $transaction->detailTransactions->sum(fn($detail) => $detail->harga_jual * $detail->pcs);
             $transaction->jumlah_item = $transaction->detailTransactions->sum('pcs');
         }
 
@@ -56,7 +62,18 @@ class PelangganController extends Controller
     {
         $customer = Customer::findOrFail($id);
         $tanggalRange = $request->get('tanggal_transaksi');
-        $transactionsQuery = $customer->transactions()->with('detailTransactions');
+        $transactionsQuery = $customer->transactions()->with([
+            'detailTransactions.detailProduct' => function ($query) {
+                $query->withTrashed()->with([
+                    'product' => function ($q) {
+                        $q->withTrashed();
+                    }
+                ]);
+            },
+            'customer' => function ($q) {
+                $q->withTrashed();
+            }
+        ]);
 
         if ($tanggalRange) {
             $dates = explode(' to ', str_replace(' sampai ', ' to ', $tanggalRange));
@@ -83,7 +100,18 @@ class PelangganController extends Controller
 
     public function kirimWhatsapp($id)
     {
-        $record = \App\Models\Transaction::with(['customer', 'detailTransactions.detailProduct.product'])->findOrFail($id);
+        $record = \App\Models\Transaction::with([
+            'customer' => function ($q) {
+                $q->withTrashed();
+            },
+            'detailTransactions.detailProduct' => function ($q) {
+                $q->withTrashed()->with([
+                    'product' => function ($p) {
+                        $p->withTrashed();
+                    }
+                ]);
+            }
+        ])->findOrFail($id);
 
         $message = "Detail Nota :\n";
         $message .= "Nomor Nota: " . ($record->nomor_nota ?? 'N/A') . "\n";
