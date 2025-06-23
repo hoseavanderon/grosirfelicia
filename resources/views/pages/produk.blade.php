@@ -27,20 +27,25 @@
 
             @php
                 use Carbon\Carbon;
+                use Illuminate\Support\Facades\Auth;
+                use Illuminate\Database\Eloquent\Builder;
+
+                $userId = Auth::id();
 
                 $lastReportDate = request('last_report_date')
                     ? Carbon::parse(request('last_report_date'))->startOfDay()
                     : Carbon::now()->subDay()->startOfDay();
 
-                use Illuminate\Database\Eloquent\Builder;
-
                 $produkBerubah = \App\Models\Product::with(['brand', 'detailProducts'])
+                    ->where('user_id', $userId)
                     ->whereHas('detailProducts.detailTransactions', function (Builder $query) use ($lastReportDate) {
                         $query->whereDate('created_at', '=', $lastReportDate->toDateString());
                     })
                     ->get();
 
-                $allProducts = \App\Models\Product::with(['brand', 'detailProducts.detailTransactions'])->get();
+                $allProducts = \App\Models\Product::with(['brand', 'detailProducts.detailTransactions'])
+                    ->where('user_id', $userId)
+                    ->get();
 
                 $waMessage = Carbon::now()->format('d F Y') . "\n\n";
 

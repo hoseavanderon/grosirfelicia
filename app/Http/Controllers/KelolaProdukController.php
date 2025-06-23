@@ -194,7 +194,15 @@ class KelolaProdukController extends Controller
             : Carbon::now()->subDay()->startOfDay();
 
         $userId = Auth::id();
+
+        dd($userId);
+
+        dd();
+        // Ambil hanya detail_product_id milik user login
         $produkBerubah = \App\Models\DetailTransaction::whereDate('created_at', '>', $lastReportDate)
+            ->whereHas('detailProduct.product', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
             ->pluck('detail_product_id')
             ->unique()
             ->toArray();
@@ -208,7 +216,7 @@ class KelolaProdukController extends Controller
             ->toArray();
 
         $products = Product::with('brand', 'detailProducts')
-            ->where('user_id', $userId) // sesuaikan jika relasi ada di tempat lain
+            ->where('user_id', $userId)
             ->get();
 
         $waMessage = Carbon::now()->format('d F Y') . "\n\n";

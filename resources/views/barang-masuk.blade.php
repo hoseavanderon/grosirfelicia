@@ -24,7 +24,7 @@
                             <tbody id="items-body">
                                 <tr>
                                     <td>
-                                        <select name="items[0][product_id]" class="form-control" required>
+                                        <select name="items[0][product_id]" class="form-control tom-select-init" required>
                                             <option value="">-- Pilih Produk --</option>
                                             @foreach ($products as $product)
                                                 <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
@@ -52,10 +52,13 @@
         </div>
     </section>
 @endsection
-
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
+        // Produk dari Blade ke JavaScript
+        const produkOptions = @json($products);
+
         $.ajaxSetup({
             headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
@@ -63,36 +66,46 @@
         });
 
         let index = 1;
+
+        function generateProductOptions() {
+            let options = '<option value="">-- Pilih Produk --</option>';
+            produkOptions.forEach(product => {
+                options += `<option value="${product.id}">${product.nama_produk}</option>`;
+            });
+            return options;
+        }
+
         $('#add-row').click(function() {
-            $('#items-body').append(`
-        <tr>
-            <td>
-                <select name="items[${index}][product_id]" class="form-control" required>
-                    <option value="">-- Pilih Produk --</option>
-                    @foreach ($products as $product)
-                        <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
-                    @endforeach
-                </select>
-            </td>
-            <td>
-                <input type="date" name="items[${index}][expired]" class="form-control" required>
-            </td>
-            <td>
-                <input type="number" name="items[${index}][pcs]" class="form-control" min="1" required>
-            </td>
-            <td>
-                <button type="button" class="btn btn-danger btn-remove">Hapus</button>
-            </td>
-        </tr>
-    `);
+            const options = generateProductOptions();
+            const newRow = `
+                <tr>
+                    <td>
+                        <select name="items[${index}][product_id]" class="form-control tom-select-init" required>
+                            ${options}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="date" name="items[${index}][expired]" class="form-control" required>
+                    </td>
+                    <td>
+                        <input type="number" name="items[${index}][pcs]" class="form-control" min="1" required>
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-remove">Hapus</button>
+                    </td>
+                </tr>
+            `;
+            $('#items-body').append(newRow);
             index++;
+
+            // Inisialisasi Tom Select hanya untuk elemen yang baru ditambahkan
+            initializeTomSelect();
         });
 
         $(document).on('click', '.btn-remove', function() {
             $(this).closest('tr').remove();
         });
 
-        // Submit produk lama
         $('#form-existing').on('submit', function(e) {
             e.preventDefault();
             Swal.fire({
@@ -114,7 +127,7 @@
                         });
                         setTimeout(() => {
                             window.location.href = '{{ route('barang-masuk.riwayat') }}';
-                        }, 1000); // Redirect setelah 1 detik (sesuai timer alert)
+                        }, 1000);
                     }).fail(() => {
                         Swal.fire({
                             title: 'Gagal!',
@@ -128,6 +141,31 @@
                 }
             })
         });
+
+        function initializeTomSelect() {
+            document.querySelectorAll('.tom-select-init').forEach(el => {
+                // Hapus class agar tidak diinisialisasi ulang
+                el.classList.remove('tom-select-init');
+
+                // Jika sudah punya instance, destroy dulu
+                if (el.tomselect) {
+                    el.tomselect.destroy();
+                }
+
+                // Inisialisasi baru
+                new TomSelect(el, {
+                    create: false,
+                    sortField: {
+                        field: "text",
+                        direction: "asc"
+                    },
+                    placeholder: "-- Pilih Produk --"
+                });
+            });
+        }
+
+        // Inisialisasi pertama kali
+        initializeTomSelect();
     </script>
 @endpush
 
