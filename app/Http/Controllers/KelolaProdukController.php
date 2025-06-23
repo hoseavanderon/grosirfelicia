@@ -195,11 +195,7 @@ class KelolaProdukController extends Controller
 
         $userId = Auth::id();
 
-        dd($userId);
-
-        dd();
-        // Ambil hanya detail_product_id milik user login
-        $produkBerubah = \App\Models\DetailTransaction::whereDate('created_at', '>', $lastReportDate)
+        $produkBerubah = \App\Models\DetailTransaction::whereDate('created_at', '=', $lastReportDate)
             ->whereHas('detailProduct.product', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
@@ -207,7 +203,16 @@ class KelolaProdukController extends Controller
             ->unique()
             ->toArray();
 
-        $produkBerubahId = \App\Models\DetailProduct::whereIn('id', $produkBerubah)
+        $produkMasuk = DB::table('barang_masuk_logs')
+            ->join('detail_products', 'barang_masuk_logs.detail_product_id', '=', 'detail_products.id')
+            ->join('products', 'detail_products.product_id', '=', 'products.id')
+            ->where('products.user_id', $userId)
+            ->whereDate('barang_masuk_logs.tanggal_masuk', $lastReportDate->toDateString())
+            ->pluck('barang_masuk_logs.detail_product_id')
+            ->unique()
+            ->toArray();
+
+        $produkGabungan = \App\Models\DetailProduct::whereIn('id', array_merge($produkBerubah, $produkMasuk))
             ->whereHas('product', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
@@ -229,7 +234,7 @@ class KelolaProdukController extends Controller
                 $totalStok = $product->detailProducts->sum('stok');
                 $desc = trim($product->nama_produk);
                 $produkId = $product->id;
-                $label = in_array($produkId, $produkBerubahId) ? '' : ' ok';
+                $label = in_array($produkId, $produkGabungan) ? '' : ' ok';
                 $waMessage .= "{$desc} {$totalStok} pcs{$label}\n";
             }
             $waMessage .= "\n";

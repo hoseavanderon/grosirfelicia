@@ -36,6 +36,14 @@
                     ? Carbon::parse(request('last_report_date'))->startOfDay()
                     : Carbon::now()->subDay()->startOfDay();
 
+                $barangMasukIds = DB::table('barang_masuk_logs')
+                    ->join('detail_products', 'barang_masuk_logs.detail_product_id', '=', 'detail_products.id')
+                    ->join('products', 'detail_products.product_id', '=', 'products.id')
+                    ->where('products.user_id', Auth::id())
+                    ->whereDate('barang_masuk_logs.tanggal_masuk', $lastReportDate->toDateString())
+                    ->pluck('barang_masuk_logs.detail_product_id')
+                    ->toArray();
+
                 $produkBerubah = \App\Models\Product::with(['brand', 'detailProducts'])
                     ->where('user_id', $userId)
                     ->whereHas('detailProducts.detailTransactions', function (Builder $query) use ($lastReportDate) {
@@ -57,11 +65,18 @@
                     foreach ($productsByBrand as $product) {
                         $totalStok = $product->detailProducts->sum('stok');
 
-                        $hasTransaction = $product->detailProducts
-                            ->flatMap(fn($dp) => $dp->detailTransactions)
-                            ->contains(fn($dt) => $dt->created_at->toDateString() == $lastReportDate->toDateString());
+                        $hasActivity = $product->detailProducts->contains(function ($dp) use (
+                            $lastReportDate,
+                            $barangMasukIds,
+                        ) {
+                            $hasTransaction = $dp->detailTransactions->contains(
+                                fn($dt) => $dt->created_at->toDateString() == $lastReportDate->toDateString(),
+                            );
+                            $hasBarangMasuk = in_array($dp->id, $barangMasukIds);
+                            return $hasTransaction || $hasBarangMasuk;
+                        });
 
-                        $label = $hasTransaction ? '' : ' ok';
+                        $label = $hasActivity ? '' : ' ok';
 
                         $desc = trim($product->nama_produk);
 
