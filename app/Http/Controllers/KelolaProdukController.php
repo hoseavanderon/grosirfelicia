@@ -193,17 +193,20 @@ class KelolaProdukController extends Controller
             ? Carbon::parse($request->last_report_date)->startOfDay()
             : Carbon::now()->subDay()->startOfDay();
 
+        $userId = Auth::id();
         $produkBerubah = \App\Models\DetailTransaction::whereDate('created_at', '>', $lastReportDate)
             ->pluck('detail_product_id')
             ->unique()
             ->toArray();
 
         $produkBerubahId = \App\Models\DetailProduct::whereIn('id', $produkBerubah)
+            ->whereHas('product', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
             ->pluck('product_id')
             ->unique()
             ->toArray();
 
-        $userId = Auth::id();
         $products = Product::with('brand', 'detailProducts')
             ->where('user_id', $userId) // sesuaikan jika relasi ada di tempat lain
             ->get();
