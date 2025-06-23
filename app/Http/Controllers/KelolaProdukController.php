@@ -203,7 +203,10 @@ class KelolaProdukController extends Controller
             ->unique()
             ->toArray();
 
-        $products = Product::with('brand', 'detailProducts')->get();
+        $userId = Auth::id();
+        $products = Product::with('brand', 'detailProducts')
+            ->where('user_id', $userId) // sesuaikan jika relasi ada di tempat lain
+            ->get();
 
         $waMessage = Carbon::now()->format('d F Y') . "\n\n";
 
