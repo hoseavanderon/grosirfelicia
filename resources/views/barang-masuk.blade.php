@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <section class="section">
         <div class="section-header d-flex justify-content-between align-items-center">
             <h1>Barang Masuk</h1>
@@ -24,7 +25,7 @@
                             <tbody id="items-body">
                                 <tr>
                                     <td>
-                                        <select name="items[0][product_id]" class="form-control tom-select-init" required>
+                                        <select name="items[0][product_id]" class="form-control select2" required>
                                             <option value="">-- Pilih Produk --</option>
                                             @foreach ($products as $product)
                                                 <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
@@ -54,6 +55,7 @@
 @endsection
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
     <script>
         // Produk dari Blade ke JavaScript
@@ -80,7 +82,7 @@
             const newRow = `
                 <tr>
                     <td>
-                        <select name="items[${index}][product_id]" class="form-control tom-select-init" required>
+                        <select name="items[${index}][product_id]" class="form-control select2" required>
                             ${options}
                         </select>
                     </td>
@@ -98,8 +100,8 @@
             $('#items-body').append(newRow);
             index++;
 
-            // Inisialisasi Tom Select hanya untuk elemen yang baru ditambahkan
-            initializeTomSelect();
+            // Re-inisialisasi Select2 pada elemen baru
+            initializeSelect2();
         });
 
         $(document).on('click', '.btn-remove', function() {
@@ -142,30 +144,15 @@
             })
         });
 
-        function initializeTomSelect() {
-            document.querySelectorAll('.tom-select-init').forEach(el => {
-                // Hapus class agar tidak diinisialisasi ulang
-                el.classList.remove('tom-select-init');
-
-                // Jika sudah punya instance, destroy dulu
-                if (el.tomselect) {
-                    el.tomselect.destroy();
-                }
-
-                // Inisialisasi baru
-                new TomSelect(el, {
-                    create: false,
-                    sortField: {
-                        field: "text",
-                        direction: "asc"
-                    },
-                    placeholder: "-- Pilih Produk --"
-                });
+        function initializeSelect2() {
+            $('.select2').select2({
+                placeholder: '-- Pilih Produk --',
+                width: '100%',
+                allowClear: true
             });
         }
 
-        // Inisialisasi pertama kali
-        initializeTomSelect();
+        initializeSelect2();
     </script>
 @endpush
 

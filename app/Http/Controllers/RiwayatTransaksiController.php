@@ -108,7 +108,9 @@ class RiwayatTransaksiController extends Controller
             $query->withTrashed();
         }])
         ->where('stok', '>', 0)
-        ->whereHas('product')
+        ->whereHas('product', function ($query) {
+            $query->where('user_id', Auth::id()); // Filter berdasarkan user yang login
+        })
         ->get();
 
         return view('transactions.edit', [

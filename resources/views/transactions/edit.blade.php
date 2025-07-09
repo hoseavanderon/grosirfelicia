@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <div class="section">
         <div class="section-header">
             <h3>Edit Transaksi</h3>
@@ -79,7 +80,7 @@
                 <div class="row g-2 align-items-end">
                     <div class="col-md-5">
                         <label>Produk</label>
-                        <select class="form-control" id="new-product">
+                        <select class="form-control select2" id="new-product">
                             <option value="" disabled selected>Pilih produk</option>
                             @foreach ($detailProducts as $dp)
                                 <option value="{{ $dp->id }}" data-nama="{{ $dp->product->nama_produk }}"
@@ -115,10 +116,17 @@
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         let itemIndex = document.querySelectorAll('.product-item').length;
 
-        // Fungsi untuk update total pcs & subtotal
+        $(document).ready(function() {
+            $('.select2').select2({
+                placeholder: 'Pilih produk',
+                width: '100%'
+            });
+        });
+
         function updateSummary() {
             let totalPcs = 0;
             let subtotal = 0;
