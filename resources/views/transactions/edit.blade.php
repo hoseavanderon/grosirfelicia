@@ -44,7 +44,7 @@
                                 <div class="col-md-3">
                                     <label>Produk</label>
                                     <input type="text" class="form-control"
-                                        value="{{ $item->detailProduct->product->nama_produk }} (Exp: {{ \Carbon\Carbon::parse($item->detailProduct->expired)->format('d/m/Y') }})"
+                                        value="{{ optional($item->detailProduct?->product)->nama_produk ?? 'Produk telah dihapus' }} (Exp: {{ optional($item->detailProduct)->expired ? \Carbon\Carbon::parse($item->detailProduct->expired)->format('d/m/Y') : 'Tidak diketahui' }})"
                                         readonly>
                                 </div>
                                 <div class="col-md-1">

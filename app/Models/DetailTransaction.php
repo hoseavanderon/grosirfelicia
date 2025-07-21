@@ -23,7 +23,7 @@ class DetailTransaction extends Model
 
     public function detailProduct()
     {
-        return $this->belongsTo(DetailProduct::class);
+        return $this->belongsTo(DetailProduct::class)->withTrashed();
     }
 
     public function product()
