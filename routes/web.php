@@ -25,6 +25,7 @@ Route::group(['middleware' => 'auth'], function () {
 
     Route::get('/laporan', [LaporanController::class, 'index'])->name('laporan');
     Route::get('/laporan/data', [LaporanController::class, 'data'])->name('laporan.data');
+    Route::get('/laporan/chart-data', [LaporanController::class, 'chartData'])->name('laporan.chartData');
 
     Route::get('/kelola-produk', [KelolaProdukController::class, 'index'])->name('kelola.produk.index');
     Route::get('/kelola-produk/daftar-produk', [KelolaProdukController::class, 'produk'])->name('kelola.produk.daftar');

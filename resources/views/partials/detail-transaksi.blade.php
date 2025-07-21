@@ -37,7 +37,7 @@
                 </div>
                 <div class="card-wrap">
                     <div class="card-header">
-                        <h4>Total Penjualan</h4>
+                        <h4>Total Belanja</h4>
                     </div>
                     <div class="card-body">
                         Rp {{ number_format($totalPenjualan, 0, ',', '.') }}
@@ -120,17 +120,16 @@
                             <a href="#"
                                 class="badge bg-primary text-decoration-none text-white btn-detail-transaksi"
                                 data-toggle="modal" data-target="#modalDetailTransaksi"
-                                data-transaksi='@json($trx)'>
-                                <i class="fas fa-eye me-1"></i>
+                                data-transaksi='@json($trx)'><i class="fas fa-eye me-1"></i>
                             </a>
                             <a href="#"
                                 class="badge bg-danger text-decoration-none text-white btn-delete-transaksi"
-                                data-id="{{ $trx->id }}" data-transaksi='@json($trx)'>
-                                <i class="fas fa-trash me-1"></i>
+                                data-id="{{ $trx->id }}" data-transaksi='@json($trx)'><i
+                                    class="fas fa-trash me-1"></i>
                             </a>
                             <a href="{{ route('kirim.whatsapp', $trx->id) }}" target="_blank"
-                                class="badge bg-success text-white text-decoration-none">
-                                <i class="fas fa-paper-plane me-1"></i>
+                                class="badge bg-success text-white text-decoration-none"><i
+                                    class="fas fa-paper-plane me-1"></i>
                             </a>
                         </td>
                     </tr>

@@ -41,13 +41,13 @@
                             <input type="hidden" name="items[{{ $i }}][detail_product_id]"
                                 value="{{ $item->detail_product_id }}">
                             <div class="row g-2">
-                                <div class="col-md-5">
+                                <div class="col-md-3">
                                     <label>Produk</label>
                                     <input type="text" class="form-control"
                                         value="{{ $item->detailProduct->product->nama_produk }} (Exp: {{ \Carbon\Carbon::parse($item->detailProduct->expired)->format('d/m/Y') }})"
                                         readonly>
                                 </div>
-                                <div class="col-md-2">
+                                <div class="col-md-1">
                                     <label>Jumlah (pcs)</label>
                                     <input type="text" name="items[{{ $i }}][pcs]" class="form-control"
                                         value="{{ $item->pcs }}" min="1" required>
@@ -56,6 +56,11 @@
                                     <label>Harga Jual</label>
                                     <input type="text" name="items[{{ $i }}][harga_jual]"
                                         class="form-control" value="{{ $item->harga_jual }}" min="0" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label>Total</label>
+                                    <input type="text" class="form-control"
+                                        value="{{ number_format($item->pcs * $item->harga_jual, 0, ',', '.') }}">
                                 </div>
                                 <div class="col-md-2 d-flex align-items-end">
                                     <button type="button" class="btn btn-danger btn-block remove-item">Hapus</button>
@@ -85,7 +90,7 @@
                             @foreach ($detailProducts as $dp)
                                 <option value="{{ $dp->id }}" data-nama="{{ $dp->product->nama_produk }}"
                                     data-expired="{{ \Carbon\Carbon::parse($dp->expired)->format('d/m/Y') }}"
-                                    data-harga="{{ $dp->product->harga_jual }}">
+                                    data-harga="{{ intval($dp->product->harga_jual) }}">
                                     {{ $dp->product->nama_produk }} (Exp:
                                     {{ \Carbon\Carbon::parse($dp->expired)->format('d/m/Y') }}, Stok: {{ $dp->stok }})
                                 </option>
@@ -99,6 +104,10 @@
                     <div class="col-md-3">
                         <label>Harga Jual</label>
                         <input type="text" id="new-harga" class="form-control" min="0">
+                    </div>
+                    <div class="col-md-3">
+                        <label>Total Harga</label>
+                        <input type="text" id="new-total" class="form-control" readonly>
                     </div>
                     <div class="col-md-2">
                         <button type="button" class="btn btn-success btn-block" id="add-product">Tambah</button>
@@ -160,22 +169,41 @@
             return parseInt(str.replace(/\./g, '')) || 0;
         }
 
+        function updateNewTotal() {
+            const pcs = parseFormattedNumber(document.getElementById('new-pcs').value);
+            const harga = parseFormattedNumber(document.getElementById('new-harga').value);
+            const total = pcs * harga;
+
+            document.getElementById('new-total').value = total > 0 ? total.toLocaleString('id-ID') : '';
+        }
+
         document.addEventListener('input', function(e) {
             if (
                 e.target.name?.includes('[pcs]') ||
-                e.target.name === 'new-pcs' ||
+                e.target.id === 'new-pcs' ||
                 e.target.name?.includes('[harga_jual]') ||
                 e.target.id === 'new-harga'
             ) {
                 formatNumberInput(e.target);
                 updateSummary();
+                updateNewTotal();
             }
         });
 
-        document.getElementById('new-product').addEventListener('change', function() {
-            const selected = this.options[this.selectedIndex];
-            const harga = selected.getAttribute('data-harga');
-            document.getElementById('new-harga').value = harga || '';
+        $('#new-product').on('change', function() {
+            const selected = $(this).find('option:selected');
+            const harga = selected.data('harga');
+
+            if (harga) {
+                const hargaInt = parseInt(harga);
+                if (!isNaN(hargaInt)) {
+                    $('#new-harga').val(hargaInt.toLocaleString('id-ID'));
+                } else {
+                    $('#new-harga').val('');
+                }
+            } else {
+                $('#new-harga').val('');
+            }
         });
 
         document.getElementById('add-product').addEventListener('click', function() {
@@ -186,8 +214,8 @@
             const detailProductId = select.value;
             const namaProduk = select.options[select.selectedIndex]?.getAttribute('data-nama');
             const expired = select.options[select.selectedIndex]?.getAttribute('data-expired');
-            const pcs = parseInt(pcsInput.value);
-            const harga = parseInt(hargaInput.value);
+            const pcs = parseInt(pcsInput.value.replace(/\./g, ''));
+            const harga = parseInt(hargaInput.value.replace(/\./g, ''));
 
             if (!detailProductId || !pcs || !harga) {
                 alert('Lengkapi semua kolom terlebih dahulu!');
@@ -210,32 +238,37 @@
                 updateSummary();
             } else {
                 const html = `
-        <div class="product-item border rounded p-3 mb-3 bg-light">
-            <input type="hidden" name="items[${itemIndex}][detail_product_id]" value="${detailProductId}">
-            <div class="row g-2">
-                <div class="col-md-5">
-                    <label>Produk</label>
-                    <input type="text" class="form-control" value="${namaProduk} (Exp: ${expired})" readonly>
+                <div class="product-item border rounded p-3 mb-3 bg-light">
+                    <input type="hidden" name="items[${itemIndex}][detail_product_id]" value="${detailProductId}">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <label>Produk</label>
+                            <input type="text" class="form-control" value="${namaProduk} (Exp: ${expired})" readonly>
+                        </div>
+                        <div class="col-md-1">
+                            <label>Jumlah (pcs)</label>
+                            <input type="text" name="items[${itemIndex}][pcs]" class="form-control" value="${pcs}" min="1" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Harga Jual</label>
+                            <input type="text" name="items[${itemIndex}][harga_jual]" class="form-control" value="${harga}" min="0" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Total Harga</label>
+                            <input type="text" class="form-control item-total" value="${(pcs * harga).toLocaleString('id-ID')}">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="button" class="btn btn-danger btn-block remove-item">Hapus</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-2">
-                    <label>Jumlah (pcs)</label>
-                    <input type="text" name="items[${itemIndex}][pcs]" class="form-control" value="${pcs}" min="1" required>
-                </div>
-                <div class="col-md-3">
-                    <label>Harga Jual</label>
-                    <input type="text" name="items[${itemIndex}][harga_jual]" class="form-control" value="${harga}" min="0" required>
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="button" class="btn btn-danger btn-block remove-item">Hapus</button>
-                </div>
-            </div>
-        </div>
-        `;
+            `;
                 document.getElementById('product-items').insertAdjacentHTML('beforeend', html);
                 itemIndex++;
             }
 
             // Reset form input bawah
+            $('#new-product').val(null).trigger('change');
             select.selectedIndex = 0;
             pcsInput.value = '';
             hargaInput.value = '';
