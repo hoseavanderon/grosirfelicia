@@ -57,7 +57,8 @@ class BarangMasukController extends Controller
 
     public function riwayat()
     {
-        $tanggalUnik = BarangMasukLog::select('tanggal_masuk')
+        $tanggalUnik = BarangMasukLog::where('user_id', Auth::id())
+            ->select('tanggal_masuk')
             ->distinct()
             ->orderByDesc('tanggal_masuk')
             ->get();
@@ -69,6 +70,7 @@ class BarangMasukController extends Controller
     {
         $logs = BarangMasukLog::with('detailProduct.product')
             ->whereDate('tanggal_masuk', $tanggal)
+            ->where('user_id', Auth::id())
             ->get();
 
         return response()->json($logs);
