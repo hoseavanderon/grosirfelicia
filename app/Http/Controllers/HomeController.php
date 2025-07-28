@@ -22,8 +22,10 @@ class HomeController extends Controller
         $userId = Auth::id();
 
         $detailProducts = DetailProduct::with('product')
+            ->where('stok', '>', 0) 
             ->whereHas('product', function ($query) use ($userId) {
-                $query->where('user_id', $userId)->whereNull('deleted_at');
+                $query->where('user_id', $userId)
+                    ->whereNull('deleted_at'); 
             })
             ->get();
 
@@ -47,6 +49,7 @@ class HomeController extends Controller
         $userId = Auth::id();
 
         $query = DetailProduct::with('product')
+            ->where('stok', '>', 0)
             ->whereHas('product', function ($q) use ($userId, $request) {
                 $q->where('user_id', $userId)->whereNull('deleted_at');
 

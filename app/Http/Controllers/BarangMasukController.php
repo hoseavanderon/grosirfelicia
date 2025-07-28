@@ -57,7 +57,8 @@ class BarangMasukController extends Controller
 
     public function riwayat()
     {
-        $tanggalUnik = BarangMasukLog::where('user_id', Auth::id())
+        $tanggalUnik = BarangMasukLog::withTrashed()
+            ->where('user_id', Auth::id())
             ->select('tanggal_masuk')
             ->distinct()
             ->orderByDesc('tanggal_masuk')
@@ -68,7 +69,10 @@ class BarangMasukController extends Controller
 
     public function getRiwayatByTanggal($tanggal)
     {
-        $logs = BarangMasukLog::with('detailProduct.product')
+        $logs = BarangMasukLog::withTrashed()
+            ->with(['detailProduct.product' => function ($query) {
+                $query->withTrashed(); // Jika product atau detailProduct juga pakai SoftDeletes
+            }])
             ->whereDate('tanggal_masuk', $tanggal)
             ->where('user_id', Auth::id())
             ->get();
