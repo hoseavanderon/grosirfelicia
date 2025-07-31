@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Redirect;
 class PelangganController extends Controller
 {
     public function index(){
-        $customers = Customer::withCount('transactions')
-            ->where('user_id', Auth::id()) 
-            ->get(); 
+        $customers = Customer::withCount('transactions')->get(); 
             
         return view('pages.pelanggan', compact('customers'));
     }
@@ -34,7 +32,7 @@ class PelangganController extends Controller
             'customer' => function ($q) {
                 $q->withTrashed();
             }
-        ]);
+        ])->where('user_id', Auth::id()); ;
 
         if ($tanggalRange) {
             $dates = explode(' to ', str_replace(' sampai ', ' to ', $tanggalRange));

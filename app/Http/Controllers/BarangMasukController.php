@@ -49,6 +49,7 @@ class BarangMasukController extends Controller
                 'detail_product_id' => $detail->id,
                 'jumlah_masuk' => $item['pcs'],
                 'tanggal_masuk' => now(),
+                'user_id' => Auth::id()
             ]);
         }
 

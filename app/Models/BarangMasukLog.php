@@ -9,7 +9,7 @@ class BarangMasukLog extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['detail_product_id', 'jumlah_masuk', 'tanggal_masuk', 'keterangan'];
+    protected $fillable = ['detail_product_id', 'jumlah_masuk', 'tanggal_masuk', 'user_id'];
 
     public function detailProduct()
     {
