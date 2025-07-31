@@ -70,10 +70,12 @@ class BarangMasukController extends Controller
 
     public function getRiwayatByTanggal($tanggal)
     {
-        $logs = BarangMasukLog::withTrashed()
-            ->with(['detailProduct.product' => function ($query) {
-                $query->withTrashed(); // Jika product atau detailProduct juga pakai SoftDeletes
-            }])
+        $logs = BarangMasukLog::with([
+            'detailProduct' => function ($query) {
+                $query->withTrashed(); // hanya ini yang include soft deleted
+            },
+            'detailProduct.product' // product tetap normal (tanpa soft deleted)
+        ])
             ->whereDate('tanggal_masuk', $tanggal)
             ->where('user_id', Auth::id())
             ->get();
@@ -81,7 +83,7 @@ class BarangMasukController extends Controller
         return response()->json($logs);
     }
 
-   public function destroyRiwayat($id)
+    public function destroyRiwayat($id)
     {
         $riwayat = BarangMasukLog::findOrFail($id);
 

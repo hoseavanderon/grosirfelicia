@@ -114,26 +114,28 @@
                 $('#modalDetailBody').html(
                     '<tr><td colspan="3" class="text-danger text-center">Gagal memuat data.</td></tr>');
             });
+        });
 
-            $(document).on('click', '.btn-hapus-riwayat', function() {
-                const id = $(this).data('id');
+        $(document).on('click', '.btn-hapus-riwayat', function() {
+            const id = $(this).data('id');
 
-                Swal.fire({
-                    title: 'Yakin ingin hapus?',
-                    text: 'Stok akan dikurangi secara otomatis.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Ya, hapus!',
-                    cancelButtonText: 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: `/barang-masuk/riwayat/${id}`,
-                            method: 'DELETE',
-                            data: {
-                                _token: '{{ csrf_token() }}'
-                            },
-                            success: function(res) {
+            Swal.fire({
+                title: 'Yakin ingin hapus?',
+                text: 'Stok akan dikurangi secara otomatis.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Ya, hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: `/barang-masuk/riwayat/${id}`,
+                        method: 'DELETE',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(res) {
+                            if (res.success) {
                                 Swal.fire({
                                     title: 'Berhasil!',
                                     text: 'Riwayat berhasil dihapus dan stok dikurangi.',
@@ -141,22 +143,33 @@
                                     timer: 500,
                                     showConfirmButton: false
                                 }).then(() => {
-                                    location
-                                        .reload(); // Reload page atau bisa panggil ulang load modal
+                                    location.reload();
                                 });
-                            },
-                            error: function() {
+                            } else {
+                                // Jika server merespon success: false
                                 Swal.fire({
                                     title: 'Gagal!',
-                                    text: 'Gagal menghapus riwayat.',
-                                    icon: 'error',
-                                    timer: 500,
-                                    showConfirmButton: false
+                                    text: res.message || 'Gagal menghapus riwayat.',
+                                    icon: 'error'
                                 });
+                                console.log('Server responded with error:', res);
                             }
-                        });
-                    }
-                });
+                        },
+                        error: function(xhr, status, error) {
+                            // 🔍 Debug lengkap error dari server
+                            console.log('AJAX error response:', xhr);
+                            console.log('Status:', status);
+                            console.log('Error:', error);
+                            console.log('Response Text:', xhr.responseText);
+
+                            Swal.fire({
+                                title: 'Gagal!',
+                                text: 'Terjadi kesalahan saat menghapus riwayat.',
+                                icon: 'error'
+                            });
+                        }
+                    });
+                }
             });
         });
     </script>
