@@ -36,6 +36,13 @@
                                     class="fas fa-bars"></i></a></li>
                     </ul>
                 </form>
+                
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="fullscreen-toggle" title="Masuk/Keluar Fullscreen">
+                        <i class="fas fa-expand" id="fullscreen-icon"></i>
+                    </a>
+                </li>
+
                 <ul class="navbar-nav navbar-right">
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
@@ -144,6 +151,71 @@
     <script src="{{ asset('assets/js/scripts.js') }}"></script>
     <script src="{{ asset('assets/js/custom.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <script>
+        const fullscreenToggle = document.getElementById('fullscreen-toggle');
+        const fullscreenIcon = document.getElementById('fullscreen-icon');
+
+        function isFullScreen() {
+            return document.fullscreenElement ||
+                document.webkitFullscreenElement ||
+                document.mozFullScreenElement ||
+                document.msFullscreenElement;
+        }
+
+        function enterFullScreen() {
+            const docEl = document.documentElement;
+            if (docEl.requestFullscreen) {
+                docEl.requestFullscreen();
+            } else if (docEl.mozRequestFullScreen) {
+                docEl.mozRequestFullScreen();
+            } else if (docEl.webkitRequestFullscreen) {
+                docEl.webkitRequestFullscreen();
+            } else if (docEl.msRequestFullscreen) {
+                docEl.msRequestFullscreen();
+            }
+        }
+
+        function exitFullScreen() {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        }
+
+        function toggleFullScreen() {
+            if (isFullScreen()) {
+                exitFullScreen();
+            } else {
+                enterFullScreen();
+            }
+        }
+
+        // Change icon on full screen change
+        document.addEventListener('fullscreenchange', updateIcon);
+        document.addEventListener('webkitfullscreenchange', updateIcon);
+        document.addEventListener('mozfullscreenchange', updateIcon);
+        document.addEventListener('MSFullscreenChange', updateIcon);
+
+        function updateIcon() {
+            if (isFullScreen()) {
+                fullscreenIcon.classList.remove('fa-expand');
+                fullscreenIcon.classList.add('fa-compress');
+            } else {
+                fullscreenIcon.classList.remove('fa-compress');
+                fullscreenIcon.classList.add('fa-expand');
+            }
+        }
+
+        fullscreenToggle.addEventListener('click', function (e) {
+            e.preventDefault();
+            toggleFullScreen();
+        });
+    </script>
     @stack('scripts')
 </body>
 
