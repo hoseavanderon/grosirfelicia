@@ -153,6 +153,62 @@
         }
 
         initializeSelect2();
+
+        const FORM_KEY = 'barang_masuk_form_data';
+
+        // ========== 1. Simpan ke localStorage saat input berubah ==========
+        $(document).on('change input', '#form-existing :input', function () {
+            const formData = $('#form-existing').serializeArray();
+            localStorage.setItem(FORM_KEY, JSON.stringify(formData));
+        });
+
+        // ========== 2. Restore dari localStorage saat halaman dimuat ==========
+        document.addEventListener('DOMContentLoaded', function () {
+            const savedData = localStorage.getItem(FORM_KEY);
+            if (savedData) {
+                const data = JSON.parse(savedData);
+
+                // Hitung berapa baris perlu ditambah
+                const maxIndex = Math.max(...data.map(field => {
+                    const match = field.name.match(/items\[(\d+)\]/);
+                    return match ? parseInt(match[1]) : 0;
+                }));
+
+                for (let i = $('#items-body tr').length; i <= maxIndex; i++) {
+                    $('#add-row').click(); // tambah baris sampai cukup
+                }
+
+                // Isi field dengan data yang disimpan
+                data.forEach(field => {
+                    const name = field.name;
+                    const value = field.value;
+                    const input = $(`[name="${name}"]`);
+                    if (input.length) {
+                        input.val(value).trigger('change');
+                    }
+                });
+            }
+        });
+
+        // ========== 3. Peringatan sebelum keluar halaman ==========
+        let isFormChanged = false;
+
+        $(document).on('change input', '#form-existing :input', function () {
+            isFormChanged = true;
+        });
+
+        window.addEventListener('beforeunload', function (e) {
+            if (isFormChanged) {
+                e.preventDefault();
+                e.returnValue = ''; // Chrome memerlukan nilai ini untuk menampilkan prompt
+            }
+        });
+
+        // ========== 4. Bersihkan localStorage setelah submit sukses ==========
+        $('#form-existing').on('submit', function () {
+            localStorage.removeItem(FORM_KEY);
+            isFormChanged = false;
+        });
     </script>
 @endpush
 
