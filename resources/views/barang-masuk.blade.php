@@ -3,16 +3,66 @@
 @section('content')
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
+        body {
+            background: #f5f7fb;
+        }
+
+        .section-header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: #4f46e5;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 14px;
+        }
+
+        .btn-light {
+            background: #eef2ff;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #3730a3;
+        }
+
+        .btn-success {
+            background: #22c55e;
+            border: none;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
+        }
+
         .card {
-            border-radius: 12px !important;
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 4px;
         }
 
         .form-control {
-            height: 42px !important;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            height: 42px;
+            font-size: 14px;
         }
 
-        .btn {
-            border-radius: 8px !important;
+        .form-control:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+        }
+
+        .btn-remove {
+            font-size: 16px;
         }
     </style>
     <section class="section">
@@ -21,11 +71,11 @@
             <h1>Barang Masuk</h1>
 
             <div class="d-flex gap-2">
-                <button type="button" id="add-row" class="btn btn-primary">
+                <button type="button" id="add-row" class="btn btn-primary shadow-sm">
                     + Tambah Baris
                 </button>
-                <a href="{{ route('barang-masuk.riwayat') }}" class="btn btn-light border">
-                    Riwayat Barang Masuk
+                <a href="{{ route('barang-masuk.riwayat') }}" class="btn btn-light shadow-sm">
+                    Riwayat
                 </a>
             </div>
         </div>
@@ -74,9 +124,10 @@
                         {{-- MOBILE CARD --}}
                         <div class="d-md-none" id="items-body-mobile">
                             <div class="card mb-3 p-3 shadow-sm">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <strong>Item 1</strong>
-                                    <button type="button" class="btn btn-link text-danger btn-remove">🗑</button>
+
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="fw-semibold">Item ${index + 1}</span>
+                                    <button type="button" class="btn btn-link text-danger btn-remove p-0">🗑</button>
                                 </div>
 
                                 <div class="mb-2">
@@ -102,8 +153,8 @@
                         </div>
 
                         <div class="text-end mt-3">
-                            <button type="submit" class="btn btn-success px-4">
-                                💾 Tambah
+                            <button type="submit" class="btn btn-success w-100 py-2 mt-3">
+                                💾 Simpan Barang Masuk
                             </button>
                         </div>
                     </form>
