@@ -72,7 +72,7 @@
                                         </tr>
                                     </tbody>
                                 </table>
-                                <button type="button" id="add-row" class="btn btn-secondary">+ Tambah Baris</button>
+
                                 <div class="text-end mt-3">
                                     <button type="submit" class="btn btn-success px-4">
                                         💾 Tambah
