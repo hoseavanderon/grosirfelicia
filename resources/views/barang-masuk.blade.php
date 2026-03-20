@@ -2,52 +2,85 @@
 
 @section('content')
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .card {
+            border-radius: 12px !important;
+        }
+
+        .form-control {
+            height: 42px !important;
+        }
+
+        .btn {
+            border-radius: 8px !important;
+        }
+    </style>
     <section class="section">
-        <div class="section-header d-flex justify-content-between align-items-center">
-            <h1>Barang Masuk</h1>
-            <a href="{{ route('barang-masuk.riwayat') }}" class="btn btn-info">Riwayat Barang Masuk</a>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0 fw-bold">Tambah Barang Masuk</h5>
+            <div class="d-flex gap-2">
+                <button type="button" id="add-row" class="btn btn-primary">
+                    + Tambah Baris
+                </button>
+                <a href="{{ route('barang-masuk.riwayat') }}" class="btn btn-light border">
+                    Riwayat Barang Masuk
+                </a>
+            </div>
         </div>
 
         <div class="section-body">
-            <div class="tab-content">
-                {{-- Tab Barang Sudah Ada --}}
-                <div class="tab-pane fade show active" id="existing">
-                    <form id="form-existing">
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Produks</th>
-                                    <th>Expired</th>
-                                    <th>Jumlah (pcs)</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="items-body">
-                                <tr>
-                                    <td>
-                                        <select name="items[0][product_id]" class="form-control select2" required>
-                                            <option value="">-- Pilih Produk --</option>
-                                            @foreach ($products as $product)
-                                                <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <input type="date" name="items[0][expired]" class="form-control" required>
-                                    </td>
-                                    <td>
-                                        <input type="number" name="items[0][pcs]" class="form-control" min="1"
-                                            required>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-danger btn-remove">Hapus</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                        <button type="button" id="add-row" class="btn btn-secondary">+ Tambah Baris</button>
-                        <button type="submit" class="btn btn-primary">Simpan Barang Masuk</button>
-                    </form>
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="tab-content">
+                        {{-- Tab Barang Sudah Ada --}}
+                        <div class="tab-pane fade show active" id="existing">
+                            <form id="form-existing">
+                                <table class="table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Produk</th>
+                                            <th>Expired</th>
+                                            <th>Jumlah (pcs)</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="items-body">
+                                        <tr>
+                                            <td>
+                                                <select name="items[0][product_id]" class="form-control select2" required>
+                                                    <option value="">-- Pilih Produk --</option>
+                                                    @foreach ($products as $product)
+                                                        <option value="{{ $product->id }}">{{ $product->nama_produk }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <input type="date" name="items[0][expired]" class="form-control"
+                                                    required>
+                                            </td>
+                                            <td>
+                                                <input type="number" name="items[0][pcs]" class="form-control"
+                                                    min="1" required>
+                                            </td>
+                                            <td>
+                                                <button type="button" class="btn btn-link text-danger btn-remove">
+                                                    🗑
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <button type="button" id="add-row" class="btn btn-secondary">+ Tambah Baris</button>
+                                <div class="text-end mt-3">
+                                    <button type="submit" class="btn btn-success px-4">
+                                        💾 Tambah
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
