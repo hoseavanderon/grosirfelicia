@@ -76,19 +76,34 @@
         .btn-soft-primary {
             background: #6366f1;
             color: #fff;
-            border-radius: 10px;
-            padding: 8px 14px;
-            font-size: 14px;
-            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-soft-primary:hover {
+            background: #4f46e5;
+            color: #fff;
         }
 
         .btn-soft {
             background: #f1f5f9;
             color: #334155;
-            border-radius: 10px;
-            padding: 8px 14px;
-            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-soft:hover {
+            background: #e2e8f0;
+            color: #334155;
+        }
+
+        .btn-remove {
+            color: #ef4444;
+            background: transparent;
             border: none;
+        }
+
+        .btn-remove:hover {
+            color: #dc2626;
+            background: transparent;
         }
     </style>
     <script src="https://unpkg.com/heroicons@2.0.18/dist/heroicons.min.js"></script>
@@ -197,7 +212,7 @@
                         </div>
 
                         <div class="text-end mt-3">
-                            <button type="submit" class="btn btn-success px-4 mt-3 w-100 d-md-inline-block">
+                            <button type="submit" class="btn btn-success px-4 mt-3 w-100" style="max-width: 320px;">
                                 <span class="d-flex align-items-center justify-content-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
                                         stroke="currentColor" stroke-width="2">
