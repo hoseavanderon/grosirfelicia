@@ -16,7 +16,7 @@
                         <table class="table table-bordered">
                             <thead>
                                 <tr>
-                                    <th>Produk</th>
+                                    <th>Produks</th>
                                     <th>Expired</th>
                                     <th>Jumlah (pcs)</th>
                                     <th>Aksi</th>
@@ -157,13 +157,13 @@
         const FORM_KEY = 'barang_masuk_form_data';
 
         // ========== 1. Simpan ke localStorage saat input berubah ==========
-        $(document).on('change input', '#form-existing :input', function () {
+        $(document).on('change input', '#form-existing :input', function() {
             const formData = $('#form-existing').serializeArray();
             localStorage.setItem(FORM_KEY, JSON.stringify(formData));
         });
 
         // ========== 2. Restore dari localStorage saat halaman dimuat ==========
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const savedData = localStorage.getItem(FORM_KEY);
             if (savedData) {
                 const data = JSON.parse(savedData);
@@ -193,11 +193,11 @@
         // ========== 3. Peringatan sebelum keluar halaman ==========
         let isFormChanged = false;
 
-        $(document).on('change input', '#form-existing :input', function () {
+        $(document).on('change input', '#form-existing :input', function() {
             isFormChanged = true;
         });
 
-        window.addEventListener('beforeunload', function (e) {
+        window.addEventListener('beforeunload', function(e) {
             if (isFormChanged) {
                 e.preventDefault();
                 e.returnValue = ''; // Chrome memerlukan nilai ini untuk menampilkan prompt
@@ -205,7 +205,7 @@
         });
 
         // ========== 4. Bersihkan localStorage setelah submit sukses ==========
-        $('#form-existing').on('submit', function () {
+        $('#form-existing').on('submit', function() {
             localStorage.removeItem(FORM_KEY);
             isFormChanged = false;
         });
