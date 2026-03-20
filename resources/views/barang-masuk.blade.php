@@ -69,10 +69,6 @@
             width: 100% !important;
         }
 
-        .btn svg {
-            stroke-width: 2;
-        }
-
         .btn-soft-primary {
             background: #6366f1 !important;
             color: #fff !important;
@@ -177,11 +173,12 @@
                                         <td>
                                             <button type="button" class="btn btn-link text-danger btn-remove p-0">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
-                                                    fill="none" stroke="currentColor" stroke-width="2">
-                                                    <path d="M3 6h18" />
-                                                    <path d="M8 6V4h8v2" />
-                                                    <path d="M9 10v6M15 10v6" />
-                                                    <path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6" />
+                                                    fill="none" stroke="currentColor" stroke-width="2"
+                                                    stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M3 6h12" />
+                                                    <path d="M8 6V4h4v2" />
+                                                    <path d="M6 6v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" />
+                                                    <path d="M9 10v6M11 10v6" />
                                                 </svg>
                                             </button>
                                         </td>
@@ -225,9 +222,10 @@
                             <button type="submit" class="btn btn-success px-4 mt-3 w-100" style="max-width: 320px;">
                                 <span class="d-flex align-items-center justify-content-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
-                                        stroke="currentColor" stroke-width="2">
-                                        <path d="M5 3h11l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-                                        <path d="M9 3v6h6" />
+                                        stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round">
+                                        <path d="M6 2h6l4 4v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+                                        <path d="M12 2v4h4" />
                                     </svg>
                                     Simpan Barang Masuk
                                 </span>
@@ -279,12 +277,14 @@
                         <input type="number" name="items[${index}][pcs]" class="form-control" min="1" required>
                     </td>
                     <td>
-                        <button type="button" class="btn btn-link text-danger btn-remove p-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M3 6h18"/>
-                                <path d="M8 6V4h8v2"/>
-                                <path d="M9 10v6M15 10v6"/>
-                                <path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6"/>
+                         <button type="button" class="btn btn-link text-danger btn-remove p-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 6h12" />
+                                <path d="M8 6V4h4v2" />
+                                <path d="M6 6v10a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V6" />
+                                <path d="M9 10v6M11 10v6" />
                             </svg>
                         </button>
                     </td>
