@@ -68,17 +68,49 @@
         .select2-container {
             width: 100% !important;
         }
+
+        .btn svg {
+            stroke-width: 2;
+        }
+
+        .btn-soft-primary {
+            background: #6366f1;
+            color: #fff;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 14px;
+            border: none;
+        }
+
+        .btn-soft {
+            background: #f1f5f9;
+            color: #334155;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 14px;
+            border: none;
+        }
     </style>
+    <script src="https://unpkg.com/heroicons@2.0.18/dist/heroicons.min.js"></script>
     <section class="section">
 
         <div class="section-header d-flex justify-content-between align-items-center">
             <h1>Barang Masuk</h1>
 
             <div class="d-flex gap-2">
-                <button type="button" id="add-row" class="btn btn-primary shadow-sm">
-                    + Tambah Baris
+                <button type="button" id="add-row" class="btn btn-soft-primary d-flex align-items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor"
+                        stroke-width="2">
+                        <path d="M12 4v16m8-8H4" />
+                    </svg>
+                    Tambah
                 </button>
-                <a href="{{ route('barang-masuk.riwayat') }}" class="btn btn-light shadow-sm">
+
+                <a href="{{ route('barang-masuk.riwayat') }}" class="btn btn-soft d-flex align-items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
+                        stroke="currentColor" stroke-width="2">
+                        <path d="M12 8v4l3 3M12 22a10 10 0 1 1 10-10" />
+                    </svg>
                     Riwayat
                 </a>
             </div>
@@ -118,7 +150,15 @@
                                                 required>
                                         </td>
                                         <td>
-                                            <button type="button" class="btn btn-link text-danger btn-remove">🗑</button>
+                                            <button type="button" class="btn btn-link text-danger btn-remove p-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                                    fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M3 6h18" />
+                                                    <path d="M8 6V4h8v2" />
+                                                    <path d="M9 10v6M15 10v6" />
+                                                    <path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6" />
+                                                </svg>
+                                            </button>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -157,8 +197,15 @@
                         </div>
 
                         <div class="text-end mt-3">
-                            <button type="submit" class="btn btn-success px-4 mt-3 w-100 w-md-auto">
-                                💾 Simpan Barang Masuk
+                            <button type="submit" class="btn btn-success px-4 mt-3 w-100 d-md-inline-block">
+                                <span class="d-flex align-items-center justify-content-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path d="M5 3h11l5 5v13a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+                                        <path d="M9 3v6h6" />
+                                    </svg>
+                                    Simpan Barang Masuk
+                                </span>
                             </button>
                         </div>
                     </form>
@@ -207,7 +254,14 @@
                         <input type="number" name="items[${index}][pcs]" class="form-control" min="1" required>
                     </td>
                     <td>
-                        <button type="button" class="btn btn-danger btn-remove">Hapus</button>
+                        <button type="button" class="btn btn-link text-danger btn-remove p-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 6h18"/>
+                                <path d="M8 6V4h8v2"/>
+                                <path d="M9 10v6M15 10v6"/>
+                                <path d="M5 6v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6"/>
+                            </svg>
+                        </button>
                     </td>
                 </tr>
             `;
