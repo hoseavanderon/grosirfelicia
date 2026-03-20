@@ -74,14 +74,23 @@
         }
 
         .btn-soft-primary {
-            background: #6366f1;
-            color: #fff;
+            background: #6366f1 !important;
+            color: #fff !important;
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 14px;
+            border: none;
             transition: all 0.2s ease;
         }
 
-        .btn-soft-primary:hover {
-            background: #4f46e5;
-            color: #fff;
+        .btn-soft-primary:hover,
+        .btn-soft-primary:focus {
+            background: #4f46e5 !important;
+            color: #fff !important;
+        }
+
+        .btn-soft-primary:active {
+            transform: scale(0.97);
         }
 
         .btn-soft {
@@ -115,16 +124,17 @@
             <div class="d-flex gap-2">
                 <button type="button" id="add-row" class="btn btn-soft-primary d-flex align-items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor"
-                        stroke-width="2">
-                        <path d="M12 4v16m8-8H4" />
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 5v14M5 12h14" />
                     </svg>
                     Tambah
                 </button>
 
                 <a href="{{ route('barang-masuk.riwayat') }}" class="btn btn-soft d-flex align-items-center gap-1">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
-                        stroke="currentColor" stroke-width="2">
-                        <path d="M12 8v4l3 3M12 22a10 10 0 1 1 10-10" />
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="9" />
+                        <path d="M12 7v5l3 2" />
                     </svg>
                     Riwayat
                 </a>
