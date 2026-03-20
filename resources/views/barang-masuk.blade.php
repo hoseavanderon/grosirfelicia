@@ -35,41 +35,71 @@
                 {{-- Tab Barang Sudah Ada --}}
                 <div class="tab-pane fade show active" id="existing">
                     <form id="form-existing">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Produk</th>
-                                    <th>Expired</th>
-                                    <th>Jumlah (pcs)</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="items-body">
-                                <tr>
-                                    <td>
-                                        <select name="items[0][product_id]" class="form-control select2" required>
-                                            <option value="">-- Pilih Produk --</option>
-                                            @foreach ($products as $product)
-                                                <option value="{{ $product->id }}">{{ $product->nama_produk }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td>
-                                        <input type="date" name="items[0][expired]" class="form-control" required>
-                                    </td>
-                                    <td>
-                                        <input type="number" name="items[0][pcs]" class="form-control" min="1"
-                                            required>
-                                    </td>
-                                    <td>
-                                        <button type="button" class="btn btn-link text-danger btn-remove">
-                                            🗑
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        {{-- DESKTOP TABLE --}}
+                        <div class="d-none d-md-block">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Produk</th>
+                                        <th>Expired</th>
+                                        <th>Jumlah (pcs)</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="items-body">
+                                    <tr>
+                                        <td>
+                                            <select name="items[0][product_id]" class="form-control select2" required>
+                                                <option value="">-- Pilih Produk --</option>
+                                                @foreach ($products as $product)
+                                                    <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
+                                                @endforeach
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="date" name="items[0][expired]" class="form-control" required>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="items[0][pcs]" class="form-control" min="1"
+                                                required>
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-link text-danger btn-remove">🗑</button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {{-- MOBILE CARD --}}
+                        <div class="d-md-none" id="items-body-mobile">
+                            <div class="card mb-3 p-3 shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Item 1</strong>
+                                    <button type="button" class="btn btn-link text-danger btn-remove">🗑</button>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label>Produk</label>
+                                    <select name="items[0][product_id]" class="form-control select2" required>
+                                        <option value="">-- Pilih Produk --</option>
+                                        @foreach ($products as $product)
+                                            <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label>Tanggal Kadaluarsa</label>
+                                    <input type="date" name="items[0][expired]" class="form-control" required>
+                                </div>
+
+                                <div>
+                                    <label>Jumlah (pcs)</label>
+                                    <input type="number" name="items[0][pcs]" class="form-control" min="1" required>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="text-end mt-3">
                             <button type="submit" class="btn btn-success px-4">
@@ -126,7 +156,36 @@
                     </td>
                 </tr>
             `;
+
+            // MOBILE VERSION
+            const newMobile = `
+            <div class="card mb-3 p-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Item ${index + 1}</strong>
+                    <button type="button" class="btn btn-link text-danger btn-remove">🗑</button>
+                </div>
+
+                <div class="mb-2">
+                    <label>Produk</label>
+                    <select name="items[${index}][product_id]" class="form-control select2" required>
+                        ${options}
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label>Tanggal Kadaluarsa</label>
+                    <input type="date" name="items[${index}][expired]" class="form-control" required>
+                </div>
+
+                <div>
+                    <label>Jumlah (pcs)</label>
+                    <input type="number" name="items[${index}][pcs]" class="form-control" min="1" required>
+                </div>
+            </div>
+            `;
+
             $('#items-body').append(newRow);
+            $('#items-body-mobile').append(newMobile);
             index++;
 
             // Re-inisialisasi Select2 pada elemen baru
@@ -134,7 +193,7 @@
         });
 
         $(document).on('click', '.btn-remove', function() {
-            $(this).closest('tr').remove();
+            $(this).closest('tr, .card').remove();
         });
 
         $('#form-existing').on('submit', function(e) {
