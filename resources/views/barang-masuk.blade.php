@@ -64,6 +64,10 @@
         .btn-remove {
             font-size: 16px;
         }
+
+        .select2-container {
+            width: 100% !important;
+        }
     </style>
     <section class="section">
 
@@ -99,7 +103,7 @@
                                 <tbody id="items-body">
                                     <tr>
                                         <td>
-                                            <select name="items[0][product_id]" class="form-control select2" required>
+                                            <select name="items[0][product_id]" class="form-control select2 w-100" required>
                                                 <option value="">-- Pilih Produk --</option>
                                                 @foreach ($products as $product)
                                                     <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
@@ -126,13 +130,13 @@
                             <div class="card mb-3 p-3 shadow-sm">
 
                                 <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <span class="fw-semibold">Item ${index + 1}</span>
+                                    <span class="fw-semibold">Item 1</span>
                                     <button type="button" class="btn btn-link text-danger btn-remove p-0">🗑</button>
                                 </div>
 
                                 <div class="mb-2">
                                     <label>Produk</label>
-                                    <select name="items[0][product_id]" class="form-control select2" required>
+                                    <select name="items[0][product_id]" class="form-control select2 w-100" required>
                                         <option value="">-- Pilih Produk --</option>
                                         @foreach ($products as $product)
                                             <option value="{{ $product->id }}">{{ $product->nama_produk }}</option>
@@ -153,7 +157,7 @@
                         </div>
 
                         <div class="text-end mt-3">
-                            <button type="submit" class="btn btn-success w-100 py-2 mt-3">
+                            <button type="submit" class="btn btn-success px-4 mt-3 w-100 w-md-auto">
                                 💾 Simpan Barang Masuk
                             </button>
                         </div>
@@ -192,7 +196,7 @@
             const newRow = `
                 <tr>
                     <td>
-                        <select name="items[${index}][product_id]" class="form-control select2" required>
+                        <select name="items[${index}][product_id]" class="form-control select2 w-100" required>
                             ${options}
                         </select>
                     </td>
