@@ -69,6 +69,21 @@
             width: 100% !important;
         }
 
+        .btn svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .btn.d-flex {
+            display: inline-flex !important;
+            align-items: center;
+        }
+
+        .btn .gap-1 {
+            gap: 6px;
+        }
+
         .btn-soft-primary {
             background: #6366f1 !important;
             color: #fff !important;
@@ -118,21 +133,21 @@
             <h1>Barang Masuk</h1>
 
             <div class="d-flex gap-2">
-                <button type="button" id="add-row" class="btn btn-soft-primary d-flex align-items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <button type="button" id="add-row" class="btn btn-soft-primary d-inline-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <path d="M12 5v14M5 12h14" />
                     </svg>
-                    Tambah
+                    <span class="ms-1">Tambah</span>
                 </button>
 
-                <a href="{{ route('barang-masuk.riwayat') }}" class="btn btn-soft d-flex align-items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <a href="{{ route('barang-masuk.riwayat') }}" class="btn btn-soft d-inline-flex align-items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="9" />
                         <path d="M12 7v5l3 2" />
                     </svg>
-                    Riwayat
+                    <span class="ms-1">Riwayat</span>
                 </a>
             </div>
         </div>
