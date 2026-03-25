@@ -350,51 +350,42 @@
         });
 
         $('#form-existing').on('submit', function(e) {
-            e.preventDefault();
+    e.preventDefault();
 
-            // 🔥 penting (fix Select2 ganggu Swal)
-            $('.select2').select2('close');
-            $('body').focus();
+    Swal.fire({
+        title: 'Tambah Stok?',
+        text: 'Stok akan ditambahkan ke detail produk yang dipilih.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Ya, Tambah'
+    }).then(result => {
+        if (result.isConfirmed) {
+            $.post('{{ route('barang-masuk.existing') }}', $(this).serialize(), res => {
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: res.message,
+                    icon: 'success',
+                    timer: 1000,
+                    timerProgressBar: true,
+                    showConfirmButton: false
+                });
 
-            Swal.fire({
-                title: 'Tambah Stok?',
-                text: 'Stok akan ditambahkan ke detail produk yang dipilih.',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonText: 'Ya, Tambah'
-            }).then(result => {
-                if (result.isConfirmed) {
-
-                    // 🔥 pindahin ke sini
-                    localStorage.removeItem(FORM_KEY);
-                    isFormChanged = false;
-
-                    $.post('{{ route('barang-masuk.existing') }}', $(this).serialize(), res => {
-                        Swal.fire({
-                            title: 'Berhasil!',
-                            text: res.message,
-                            icon: 'success',
-                            timer: 1000,
-                            timerProgressBar: true,
-                            showConfirmButton: false
-                        });
-
-                        setTimeout(() => {
-                            window.location.href = '{{ route('barang-masuk.riwayat') }}';
-                        }, 1000);
-                    }).fail(() => {
-                        Swal.fire({
-                            title: 'Gagal!',
-                            text: 'Terjadi kesalahan.',
-                            icon: 'error',
-                            timer: 3000,
-                            timerProgressBar: true,
-                            showConfirmButton: false
-                        });
-                    });
-                }
+                setTimeout(() => {
+                    window.location.href = '{{ route('barang-masuk.riwayat') }}';
+                }, 1000);
+            }).fail(() => {
+                Swal.fire({
+                    title: 'Gagal!',
+                    text: 'Terjadi kesalahan.',
+                    icon: 'error',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: false
+                });
             });
-        });
+        }
+    });
+});
 
         function initializeSelect2() {
             $('.select2').select2({
