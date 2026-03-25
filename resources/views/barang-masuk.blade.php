@@ -125,6 +125,10 @@
             color: #dc2626;
             background: transparent;
         }
+
+        .swal2-container {
+            z-index: 99999 !important;
+        }
     </style>
     <script src="https://unpkg.com/heroicons@2.0.18/dist/heroicons.min.js"></script>
     <section class="section">
@@ -347,6 +351,11 @@
 
         $('#form-existing').on('submit', function(e) {
             e.preventDefault();
+
+            // 🔥 penting (fix Select2 ganggu Swal)
+            $('.select2').select2('close');
+            $('body').focus();
+
             Swal.fire({
                 title: 'Tambah Stok?',
                 text: 'Stok akan ditambahkan ke detail produk yang dipilih.',
@@ -355,6 +364,11 @@
                 confirmButtonText: 'Ya, Tambah'
             }).then(result => {
                 if (result.isConfirmed) {
+
+                    // 🔥 pindahin ke sini
+                    localStorage.removeItem(FORM_KEY);
+                    isFormChanged = false;
+
                     $.post('{{ route('barang-masuk.existing') }}', $(this).serialize(), res => {
                         Swal.fire({
                             title: 'Berhasil!',
@@ -364,6 +378,7 @@
                             timerProgressBar: true,
                             showConfirmButton: false
                         });
+
                         setTimeout(() => {
                             window.location.href = '{{ route('barang-masuk.riwayat') }}';
                         }, 1000);
@@ -378,7 +393,7 @@
                         });
                     });
                 }
-            })
+            });
         });
 
         function initializeSelect2() {
@@ -439,12 +454,6 @@
                 e.preventDefault();
                 e.returnValue = ''; // Chrome memerlukan nilai ini untuk menampilkan prompt
             }
-        });
-
-        // ========== 4. Bersihkan localStorage setelah submit sukses ==========
-        $('#form-existing').on('submit', function() {
-            localStorage.removeItem(FORM_KEY);
-            isFormChanged = false;
         });
     </script>
 @endpush
