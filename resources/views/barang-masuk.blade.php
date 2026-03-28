@@ -273,9 +273,17 @@
                 const mobileCard = $('#items-body-mobile .card').eq(i);
 
                 if (mobileCard.length) {
-                    mobileCard.find('[name*="[product_id]"]').val(product).trigger('change');
-                    mobileCard.find('[name*="[expired]"]').val(expired);
-                    mobileCard.find('[name*="[pcs]"]').val(pcs);
+                    if (product) {
+                        mobileCard.find('[name*="[product_id]"]').val(product).trigger('change');
+                    }
+
+                    if (expired) {
+                        mobileCard.find('[name*="[expired]"]').val(expired);
+                    }
+
+                    if (pcs) {
+                        mobileCard.find('[name*="[pcs]"]').val(pcs);
+                    }
                 }
             });
         }
@@ -383,6 +391,7 @@
 
             // Re-inisialisasi Select2 pada elemen baru
             initializeSelect2();
+            toggleFormByScreen();
         });
 
         $(document).on('click', '.btn-remove', function() {
