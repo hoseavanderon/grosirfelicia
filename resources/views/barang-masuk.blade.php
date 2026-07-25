@@ -134,7 +134,7 @@
     <section class="section">
 
         <div class="section-header d-flex justify-content-between align-items-center">
-            <h1>Barang Masuks</h1>
+            <h1>Barang Masuk</h1>
 
             <div class="d-flex gap-2">
                 <button type="button" id="add-row" class="btn btn-soft-primary d-inline-flex align-items-center">
