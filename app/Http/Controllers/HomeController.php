@@ -2,18 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Product;
-use App\Models\Category;
-use App\Models\Brand;
-use Illuminate\Support\Str;
-use App\Models\Customer;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\DetailProduct;
-use App\Models\DetailTransaction;
-use App\Models\Transaction;
-use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class HomeController extends Controller
 {
@@ -21,157 +12,144 @@ class HomeController extends Controller
     {
         $userId = Auth::id();
 
-        $detailProducts = DetailProduct::with('product')
-            ->where('stok', '>', 0) 
-            ->whereHas('product', function ($query) use ($userId) {
-                $query->where('user_id', $userId)
-                    ->whereNull('deleted_at'); 
-            })
-            ->get();
-
-        $customers = Customer::all();
-
-        $categoriesWithBrands = Product::select('products.category_id', 'products.brand_id', 'categories.category as category_name', 'brands.brand as brand_name')
-            ->join('categories', 'products.category_id', '=', 'categories.id')
-            ->join('brands', 'products.brand_id', '=', 'brands.id')
-            ->where('products.user_id', $userId)
-            ->whereNull('products.deleted_at')
-            ->whereNull('categories.deleted_at') // tambahkan ini
-            ->whereNull('brands.deleted_at')     // dan ini
+        $categories = Product::query()
+            ->select(
+                'products.category_id',
+                'products.brand_id',
+                'categories.category',
+                'brands.brand'
+            )
+            ->join(
+                'categories',
+                'categories.id',
+                '=',
+                'products.category_id'
+            )
+            ->join(
+                'brands',
+                'brands.id',
+                '=',
+                'products.brand_id'
+            )
+            ->where(
+                'products.user_id',
+                $userId
+            )
             ->distinct()
-            ->get();
+            ->orderBy('categories.category')
+            ->orderBy('brands.brand')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'category_id' => $item->category_id,
+                    'brand_id' => $item->brand_id,
+                    'label' => $item->category . ' ' . $item->brand,
+                ];
+            })
+            ->values();
 
-        return view('pages.home', compact('detailProducts', 'categoriesWithBrands', 'customers'));
+       $products = Product::query()
+            ->with([
+                'detailProducts' => function ($query) {
+                    $query->where('stok', '>', 0)
+                        ->orderBy('expired');
+                },
+                'category',
+                'brand',
+            ])
+            ->withSum('detailProducts as total_stock_sum', 'stok')
+            ->where('user_id', $userId)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(function ($product) {
+
+                return [
+
+                    'product_id' => $product->id,
+
+                    'category_id' => $product->category_id,
+
+                    'brand_id' => $product->brand_id,
+
+                    'sort_order' => (int) $product->sort_order,
+
+                    'name' => $product->nama_produk,
+
+                    'price' => $product->harga_jual,
+
+                    'total_batch' => $product
+                        ->detailProducts
+                        ->count(),
+
+                    'total_stock' => (int) ($product->total_stock_sum ?? $product->stok),
+
+                    'details' => $product
+                        ->detailProducts
+                        ->map(function ($detail) {
+
+                            return [
+
+                                'id' => $detail->id,
+
+                                'stock' => $detail->stok,
+
+                                'exp' => optional(
+                                    $detail->expired
+                                )->format('d/m'),
+
+                            ];
+
+                        })
+                        ->values(),
+
+                ];
+
+            })
+            ->filter(
+                fn($product) =>
+                $product['details']->count()
+            )
+            ->values();
+
+        return view(
+            'pages.kasir.index',
+            compact(
+                'categories',
+                'products'
+            )
+        );
     }
 
-    public function filter(Request $request)
+    public function reorder(Request $request)
     {
-        $userId = Auth::id();
-
-        $query = DetailProduct::with('product')
-            ->where('stok', '>', 0)
-            ->whereHas('product', function ($q) use ($userId, $request) {
-                $q->where('user_id', $userId)->whereNull('deleted_at');
-
-                if ($request->filled('catbrand') && $request->catbrand !== 'all') {
-                    [$catId, $brandId] = explode('-', $request->catbrand);
-                    $q->where('category_id', $catId)->where('brand_id', $brandId);
-                }
-
-                if ($request->filled('search')) {
-                    $q->where('nama_produk', 'like', '%' . $request->search . '%');
-                }
-            });
-
-        $detailProducts = $query->get();
-        $customers = Customer::all();
-
-        return view('partials.filter-product', compact('detailProducts', 'customers'));
-    }
-
-    public function checkStock(Request $request)
-    {
-        $productName = $request->name;
-        $quantity = $request->quantity;
-
-        $product = Product::where('nama_produk', $productName)
-                  ->where('user_id', Auth::id())
-                  ->first();
-
-        if (!$product) {
-            return response()->json(['success' => false, 'message' => 'Produk tidak ditemukan.'], 404);
-        }
-
-        if ($quantity > $product->stok) {
-            return response()->json([
-                'success' => false,
-                'message' => "Stok tidak mencukupi. Stok tersedia: {$product->stok}"
-            ]);
-        }
-
-        return response()->json(['success' => true]);
-    }
-
-    public function search(Request $request)
-    {
-        $search = $request->get('q');
-
-        $results = Customer::where('nama_pelanggan', 'like', "%{$search}%")
-            ->select('user_id', 'nama_pelanggan')
-            ->limit(10)
-            ->get();
-
-        return response()->json($results);
-    }
-
-   public function checkout(Request $request)
-    {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'cart_items' => 'required|array|min:1',
+        $validated = $request->validate([
+            'products' => ['required', 'array', 'min:1'],
+            'products.*' => ['integer', 'exists:products,id'],
+            'category_id' => ['required', 'integer'],
+            'brand_id' => ['required', 'integer'],
         ]);
 
-        $user = Auth::user();
-        $customer = Customer::findOrFail($request->customer_id);
+        $userId = Auth::id();
 
-        foreach ($request->cart_items as $item) {
-            $detailProduct = DetailProduct::with('product')->find($item['detail_product_id']);
+        $baseOrder = Product::query()
+            ->where('user_id', $userId)
+            ->where('category_id', $validated['category_id'])
+            ->where('brand_id', $validated['brand_id'])
+            ->min('sort_order') ?? 1;
 
-            if (!$detailProduct || $detailProduct->stok < $item['qty']) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => "Stok tidak cukup untuk <strong>{$detailProduct?->product?->nama_produk}</strong> (Expired: <strong>" . \Carbon\Carbon::parse($detailProduct?->expired)->translatedFormat('d F Y') . "</strong>). Sisa stok: {$detailProduct?->stok}",
-                ], 400);
-            }
-        }
-
-        $tanggal = now()->format('Ymd');
-        $countToday = Transaction::whereDate('created_at', today())->count();
-
-        do {
-            $number = str_pad($countToday + 1, 4, '0', STR_PAD_LEFT);
-            $newNota = "TRX-{$tanggal}-{$number}";
-            $countToday++;
-        } while (Transaction::withTrashed()->where('nomor_nota', $newNota)->exists());
-
-        DB::beginTransaction();
-
-        try {
-            $transaction = Transaction::create([
-                'customer_id' => $customer->id,
-                'user_id' => $user->id,
-                'nomor_nota' => $newNota,
-                'metode_pembayaran' => 'cash',
-            ]);
-
-            foreach ($request->cart_items as $item) {
-                $detailProduct = DetailProduct::find($item['detail_product_id']);
-                $detailProduct->stok -= $item['qty'];
-                $detailProduct->save();
-
-                DetailTransaction::create([
-                    'transaction_id' => $transaction->id,
-                    'detail_product_id' => $detailProduct->id,
-                    'harga_jual' => $item['price'],
-                    'pcs' => $item['qty'],
+        foreach ($validated['products'] as $index => $productId) {
+            Product::query()
+                ->where('user_id', $userId)
+                ->where('id', $productId)
+                ->where('category_id', $validated['category_id'])
+                ->where('brand_id', $validated['brand_id'])
+                ->update([
+                    'sort_order' => $baseOrder + $index,
                 ]);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Checkout berhasil!',
-                'nomor_nota' => $transaction->nomor_nota,
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Terjadi kesalahan saat proses checkout.',
-            ], 500);
         }
-    }
 
+        return response()->json([
+            'success' => true,
+        ]);
+    }
 }

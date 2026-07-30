@@ -1,0 +1,257 @@
+.produk-page {
+    animation: produkFadeIn 0.4s ease-out;
+}
+
+@keyframes produkFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.produk-header {
+    margin-bottom: 1.5rem;
+}
+
+.produk-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.produk-grid {
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+    .produk-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        align-items: start;
+    }
+}
+
+.produk-card {
+    --produk-card-body-max-height: 17.5rem;
+
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+@media (min-width: 640px) {
+    .produk-card {
+        --produk-card-body-max-height: 18.75rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .produk-card {
+        --produk-card-body-max-height: 23.75rem;
+    }
+}
+
+.produk-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.07);
+}
+
+.produk-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1.25rem 1.25rem 0.875rem;
+    flex-shrink: 0;
+    background: var(--card);
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 88%, transparent);
+    z-index: 1;
+}
+
+.produk-card-title {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.01em;
+}
+
+.produk-card-action {
+    flex-shrink: 0;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    padding: 0.4375rem 0.875rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.produk-card-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.produk-card-action:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.produk-card-body {
+    flex: 0 1 auto;
+    width: 100%;
+    max-height: var(--produk-card-body-max-height);
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding: 0.25rem 0.75rem 1rem 1.25rem;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text) 22%, transparent) transparent;
+}
+
+.produk-card-body::-webkit-scrollbar {
+    width: 5px;
+}
+
+.produk-card-body::-webkit-scrollbar-track {
+    background: transparent;
+    margin-block: 0.375rem;
+}
+
+.produk-card-body::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--text) 18%, transparent);
+    border-radius: 9999px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+.produk-card-body::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--text) 30%, transparent);
+    background-clip: padding-box;
+}
+
+.produk-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.875rem;
+    padding: 0.875rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+}
+
+.produk-list-item:last-child {
+    border-bottom: 0;
+}
+
+.produk-item-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.produk-item-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.35;
+    word-break: break-word;
+}
+
+.produk-item-sub {
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    color: color-mix(in srgb, var(--text) 55%, transparent);
+    font-family: "JetBrains Mono", monospace;
+}
+
+.produk-badge {
+    flex-shrink: 0;
+    border-radius: 9999px;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: "JetBrains Mono", monospace;
+    white-space: nowrap;
+}
+
+.produk-badge-success {
+    background: #18181b;
+    color: #fff;
+}
+
+.dark .produk-badge-success {
+    background: #fafafa;
+    color: #18181b;
+}
+
+.produk-badge-warning {
+    background: color-mix(in srgb, var(--text) 8%, var(--card));
+    color: var(--text);
+    border: 1px solid color-mix(in srgb, var(--text) 12%, var(--border));
+}
+
+.produk-badge-danger {
+    background: #09090b;
+    color: #fff;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 10%, transparent);
+}
+
+.dark .produk-badge-danger {
+    background: #fafafa;
+    color: #09090b;
+}
+
+.produk-empty {
+    padding: 2rem 0.5rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+.produk-loading {
+    padding: 2rem 0.5rem;
+    text-align: center;
+    font-size: 0.8125rem;
+    color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+.produk-load-more {
+    padding: 0.75rem 0 0.25rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: color-mix(in srgb, var(--text) 50%, transparent);
+}
+
+.produk-spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 9999px;
+    border: 2px solid color-mix(in srgb, var(--text) 15%, transparent);
+    border-top-color: var(--text);
+    animation: produkSpin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 0.375rem;
+}
+
+@keyframes produkSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}

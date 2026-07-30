@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DetailTransaction extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
+
+    protected $table = 'detail_transactions';
 
     protected $fillable = [
         'transaction_id',
@@ -17,17 +18,13 @@ class DetailTransaction extends Model
         'pcs',
     ];
 
-    public function transaction(){
+    public function transaction()
+    {
         return $this->belongsTo(Transaction::class);
     }
 
     public function detailProduct()
     {
-        return $this->belongsTo(DetailProduct::class)->withTrashed();
-    }
-
-    public function product()
-    {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(DetailProduct::class);
     }
 }

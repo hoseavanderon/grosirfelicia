@@ -3,26 +3,34 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use App\Models\DetailTransaction;
 
 class DetailProduct extends Model
 {
-    use HasFactory, SoftDeletes;
+    use SoftDeletes;
+
+    protected $table = 'detail_products';
 
     protected $fillable = [
         'product_id',
         'expired',
-        'stok'
+        'stok',
     ];
 
-    public function product(){
-        return $this->belongsTo(Product::class)->withTrashed();
+    protected $casts = [
+        'expired' => 'date',
+    ];
+
+    public function product()
+    {
+        return $this->belongsTo(
+            Product::class,
+            'product_id'
+        );
     }
 
-    public function detailTransactions()
+    public function barangMasukLogs()
     {
-        return $this->hasMany(DetailTransaction::class, 'detail_product_id');
+        return $this->hasMany(BarangMasukLog::class, 'detail_product_id');
     }
 }

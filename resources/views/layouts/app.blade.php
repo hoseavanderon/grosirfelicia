@@ -1,222 +1,56 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 
 <head>
     <meta charset="UTF-8">
-    <meta content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no" name="viewport">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ Auth::user()->name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- General CSS Files -->
-    <link rel="stylesheet" href="{{ asset('assets/modules/bootstrap/css/bootstrap.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/modules/fontawesome/css/all.min.css') }}">
+    <title>{{ config('app.name') }}</title>
 
-    <!-- CSS Libraries -->
-    <link rel="stylesheet" href="{{ asset('assets/modules/jqvmap/dist/jqvmap.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/modules/summernote/summernote-bs4.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/modules/owlcarousel2/dist/assets/owl.carousel.min.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/modules/owlcarousel2/dist/assets/owl.theme.default.min.css') }}">
+    {{-- Tailwind --}}
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        };
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Template CSS -->
-    <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}">
-    <link rel="stylesheet" href="{{ asset('assets/css/components.css') }}">
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    {{-- Alpine --}}
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect/dist/cdn.min.js"></script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <link rel="stylesheet" href="{{ asset('css/app.css') }}">
 
     @stack('styles')
 </head>
 
-<body>
-    <div id="app">
-        <div class="main-wrapper main-wrapper-1">
-            <div class="navbar-bg"></div>
-            <nav class="navbar navbar-expand-lg main-navbar">
-                <form class="form-inline mr-auto">
-                    <ul class="navbar-nav mr-3">
-                        <li><a href="#" data-toggle="sidebar" class="nav-link nav-link-lg"><i
-                                    class="fas fa-bars"></i></a></li>
-                    </ul>
-                </form>
-                
-                <li class="nav-item">
-                    <a class="nav-link" href="#" id="fullscreen-toggle" title="Masuk/Keluar Fullscreen">
-                        <i class="fas fa-expand" id="fullscreen-icon"></i>
-                    </a>
-                </li>
+<body x-data="appLayout" class="h-full bg-zinc-100 dark:bg-zinc-950">
 
-                <ul class="navbar-nav navbar-right">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            {{ Auth::user()->name }}
-                        </a>
-                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="userDropdown">
-                            <a class="dropdown-item text-danger" href="{{ route('logout') }}"
-                                onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                            <form id="logout-form" action="{{ route('logout') }}" method="POST"
-                                style="display: none;">
-                                @csrf
-                            </form>
-                        </div>
-                    </li>
-                </ul>
+    <div class="app-shell">
 
-            </nav>
+        @include('partials.sidebar')
 
-            <div class="main-sidebar sidebar-style-2">
-                <aside id="sidebar-wrapper">
-                    <div class="sidebar-brand">
-                        <a href="{{ route('home') }}">Felicia</a>
-                    </div>
-                    <div class="sidebar-brand sidebar-brand-sm">
-                        <a href="{{ route('home') }}">F.F</a>
-                    </div>
-                    <ul class="sidebar-menu">
-                        <li class="menu-header">Dashboard</li>
+        <div class="app-main">
 
-                        <li>
-                            <a class="nav-link" href="{{ route('home') }}">
-                                <i class="fas fa-store"></i> <span class="text-dark">Kasir</span>
-                            </a>
-                        </li>
+            @include('partials.header')
 
-                        <li>
-                            <a class="nav-link" href="{{ route('riwayat') }}">
-                                <i class="fas fa-history"></i> <span class="text-dark">Riwayat Transaksi</span>
-                            </a>
-                        </li>
+            <main class="app-content">
 
-                        <li>
-                            <a class="nav-link" href="{{ route('laporan') }}">
-                                <i class="fas fa-chart-line"></i> <span class="text-dark">Laporan</span>
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="nav-link" href="{{ route('kelola.produk.index') }}">
-                                <i class="fas fa-boxes"></i> <span class="text-dark">Kelola Produk</span>
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="nav-link" href="{{ route('pelanggan') }}">
-                                <i class="fas fa-user-friends"></i> <span class="text-dark">Langganan</span>
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="nav-link" href="{{ route('barang-masuk') }}">
-                                <i class="fas fa-truck-loading"></i> <span class="text-dark">Barang Masuk</span>
-                            </a>
-                        </li>
-                    </ul>
-
-                    <ul class="sidebar-menu">
-                        <li class="menu-header">Admin</li>
-
-                        <li>
-                            <a class="nav-link" href="{{ url('/admin') }}">
-                                <i class="fas fa-store"></i> <span class="text-dark">Admin</span>
-                            </a>
-                        </li>
-                    </ul>
-                </aside>
-            </div>
-
-            <div class="main-content">
                 @yield('content')
-            </div>
+
+            </main>
+
         </div>
+
     </div>
 
-    <!-- General JS Scripts -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="{{ asset('assets/modules/popper.js') }}"></script>
-    <script src="{{ asset('assets/modules/tooltip.js') }}"></script>
-    <script src="{{ asset('assets/modules/bootstrap/js/bootstrap.min.js') }}"></script>
-    <script src="{{ asset('assets/modules/nicescroll/jquery.nicescroll.min.js') }}"></script>
+    <script src="{{ asset('js/app.js') }}"></script>
 
-    <!-- JS Libraries -->
-    <script src="{{ asset('assets/modules/jquery.sparkline.min.js') }}"></script>
-    <script src="{{ asset('assets/modules/owlcarousel2/dist/owl.carousel.min.js') }}"></script>
-    <script src="{{ asset('assets/modules/summernote/summernote-bs4.js') }}"></script>
-    <script src="{{ asset('assets/modules/chocolat/dist/js/jquery.chocolat.min.js') }}"></script>
-
-    <!-- Page Specific JS File -->
-    <script src="{{ asset('assets/js/page/index.js') }}"></script>
-    <script src="{{ asset('assets/js/page/bootstrap-modal.js') }}"></script>
-
-    <!-- Template JS File -->
-    <script src="{{ asset('assets/js/scripts.js') }}"></script>
-    <script src="{{ asset('assets/js/custom.js') }}"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-    <script>
-        const fullscreenToggle = document.getElementById('fullscreen-toggle');
-        const fullscreenIcon = document.getElementById('fullscreen-icon');
-
-        function isFullScreen() {
-            return document.fullscreenElement ||
-                document.webkitFullscreenElement ||
-                document.mozFullScreenElement ||
-                document.msFullscreenElement;
-        }
-
-        function enterFullScreen() {
-            const docEl = document.documentElement;
-            if (docEl.requestFullscreen) {
-                docEl.requestFullscreen();
-            } else if (docEl.mozRequestFullScreen) {
-                docEl.mozRequestFullScreen();
-            } else if (docEl.webkitRequestFullscreen) {
-                docEl.webkitRequestFullscreen();
-            } else if (docEl.msRequestFullscreen) {
-                docEl.msRequestFullscreen();
-            }
-        }
-
-        function exitFullScreen() {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            } else if (document.mozCancelFullScreen) {
-                document.mozCancelFullScreen();
-            } else if (document.webkitExitFullscreen) {
-                document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) {
-                document.msExitFullscreen();
-            }
-        }
-
-        function toggleFullScreen() {
-            if (isFullScreen()) {
-                exitFullScreen();
-            } else {
-                enterFullScreen();
-            }
-        }
-
-        // Change icon on full screen change
-        document.addEventListener('fullscreenchange', updateIcon);
-        document.addEventListener('webkitfullscreenchange', updateIcon);
-        document.addEventListener('mozfullscreenchange', updateIcon);
-        document.addEventListener('MSFullscreenChange', updateIcon);
-
-        function updateIcon() {
-            if (isFullScreen()) {
-                fullscreenIcon.classList.remove('fa-expand');
-                fullscreenIcon.classList.add('fa-compress');
-            } else {
-                fullscreenIcon.classList.remove('fa-compress');
-                fullscreenIcon.classList.add('fa-expand');
-            }
-        }
-
-        fullscreenToggle.addEventListener('click', function (e) {
-            e.preventDefault();
-            toggleFullScreen();
-        });
-    </script>
     @stack('scripts')
+
+    <x-ui.toast />
 </body>
 
 </html>

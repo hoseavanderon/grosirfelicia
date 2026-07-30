@@ -1,0 +1,332 @@
+:root {
+    --bg: #f4f4f5;
+    --card: #ffffff;
+    --border: #e4e4e7;
+    --text: #18181b;
+    --hover: #f1f5f9;
+}
+
+.dark {
+    --bg: #09090b;
+    --card: #18181b;
+    --border: #27272a;
+    --text: #fafafa;
+    --hover: #27272a;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+}
+
+@keyframes fadeInSoft {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+    background: var(--bg);
+    animation: fadeInSoft 0.45s ease-out both;
+}
+
+.app-main {
+    flex: 1;
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+}
+
+.app-content {
+    flex: 1;
+
+    padding: 24px;
+
+    background: var(--bg);
+    animation: fadeInSoft 0.65s ease-out both;
+}
+
+.surface-card {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.surface-card-muted {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.theme-text {
+    color: var(--text);
+}
+
+.theme-text-muted {
+    color: var(--text);
+    opacity: 0.72;
+}
+
+.sidebar {
+    width: 270px;
+    height: 100vh;
+    animation: fadeInSoft 0.55s ease-out both;
+
+    position: sticky;
+    top: 0;
+
+    background: var(--card);
+    border-right: 1px solid var(--border);
+
+    display: flex;
+    flex-direction: column;
+
+    transition: 0.3s ease;
+}
+
+.sidebar.collapsed {
+    width: 84px;
+}
+
+.sidebar.collapsed .menu-text,
+.sidebar.collapsed .brand-text {
+    display: none;
+}
+
+.sidebar-brand {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.brand-logo {
+    width: 44px;
+    height: 44px;
+
+    border-radius: 14px;
+
+    background: #000;
+    color: #fff;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dark .brand-logo {
+    background: white;
+    color: black;
+}
+
+.sidebar-menu {
+    flex: 1;
+    padding: 16px;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+
+    height: 52px;
+
+    padding: 0 16px;
+
+    border-radius: 14px;
+
+    transition: 0.2s;
+}
+
+.menu-item:hover {
+    background: var(--hover);
+}
+
+.menu-item.active {
+    background: black;
+    color: white;
+}
+
+.dark .menu-item.active {
+    background: white;
+    color: black;
+}
+
+.sidebar-footer {
+    border-top: 1px solid var(--border);
+    padding: 16px;
+}
+
+.header {
+    height: 72px;
+    background: var(--card);
+    animation: fadeInSoft 0.6s ease-out both;
+
+    border-bottom: 1px solid var(--border);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 24px;
+
+    position: sticky;
+    top: 0;
+
+    z-index: 50;
+}
+
+.header-right,
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon-btn {
+    width: 42px;
+    height: 42px;
+
+    border-radius: 12px;
+
+    transition: 0.2s;
+}
+
+.icon-btn:hover {
+    background: var(--hover);
+}
+
+.dropdown {
+    position: relative;
+}
+
+.user-button {
+    height: 42px;
+
+    padding: 0 16px;
+
+    border-radius: 12px;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-button:hover {
+    background: var(--hover);
+}
+
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 55px;
+
+    width: 220px;
+
+    background: var(--card);
+
+    border: 1px solid var(--border);
+
+    border-radius: 16px;
+
+    display: none;
+
+    overflow: hidden;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-menu a,
+.dropdown-menu button {
+    width: 100%;
+    display: block;
+    text-align: left;
+
+    padding: 14px 18px;
+}
+
+.dropdown-menu a:hover,
+.dropdown-menu button:hover {
+    background: var(--hover);
+}
+
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.4);
+
+    opacity: 0;
+    visibility: hidden;
+
+    transition: 0.3s;
+
+    z-index: 80;
+}
+
+.sidebar-overlay.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (max-width: 1024px) {
+    .sidebar {
+        position: fixed;
+
+        left: -280px;
+
+        top: 0;
+
+        z-index: 100;
+    }
+
+    .sidebar.show {
+        left: 0;
+    }
+}
+
+.menu-svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.sidebar.collapsed .menu-svg {
+    margin: 0 auto;
+}
+
+.header-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

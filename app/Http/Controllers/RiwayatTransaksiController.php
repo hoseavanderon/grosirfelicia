@@ -2,208 +2,122 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DetailProduct;
-use App\Models\DetailTransaction;
+use App\Http\Controllers\Concerns\FormatsTransactions;
+use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Models\Transaction;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class RiwayatTransaksiController extends Controller
 {
-    public function index(Request $request)
+    use FormatsTransactions;
+
+    public function index()
     {
-        \Carbon\Carbon::setLocale('id');
-        $tanggalFilter = $request->input('tanggal_riwayat');
-
-        if ($tanggalFilter) {
-            if (strpos($tanggalFilter, ' to ') !== false) {
-                [$start, $end] = explode(' to ', $tanggalFilter);
-                $startDate = Carbon::parse($start)->startOfDay();
-                $endDate = Carbon::parse($end)->endOfDay();
-            } else {
-                $startDate = Carbon::parse($tanggalFilter)->startOfDay();
-                $endDate = Carbon::parse($tanggalFilter)->endOfDay();
-            }
-        } else {
-            $startDate = Carbon::today()->startOfDay();
-            $endDate = Carbon::today()->endOfDay();
-        }
-
-        $userId = Auth::id();
-
-        $transactions = Transaction::with([
-            'detailTransactions.detailProduct' => function ($query) {
-                $query->withTrashed()->with([
-                    'product' => function ($q) {
-                        $q->withTrashed(); // optional, kalau Product juga pakai soft delete
-                    }
-                ]);
-            },
-            'customer'
-        ])
-        ->where('user_id', $userId)
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->orderBy('created_at', 'desc')
-        ->get();
-
-        $totalUangDiterima = $transactions->sum(function($transaction) {
-            return $transaction->detailTransactions->sum(function($detail) {
-                return $detail->harga_jual * $detail->pcs;
-            });
-        });
-
-        return view('pages.riwayat', compact('transactions', 'tanggalFilter', 'startDate', 'endDate', 'totalUangDiterima'));
+        return view('pages.transaksi.index');
     }
 
-    public function ajaxIndex(Request $request)
+    public function list(Request $request)
     {
-        \Carbon\Carbon::setLocale('id');
-        $tanggalRange = $request->tanggal_riwayat;
+        $query = Transaction::query()
+            ->with([
+                'customer',
+                'detailTransactions.detailProduct.product',
+            ])
+            ->where('user_id', Auth::id());
 
-        if ($tanggalRange && str_contains($tanggalRange, ' to ')) {
-            $parts = explode(' to ', $tanggalRange);
-            if (count($parts) === 2) {
-                $startDate = \Carbon\Carbon::parse($parts[0])->startOfDay();
-                $endDate = \Carbon\Carbon::parse($parts[1])->endOfDay();
-            } else {
-                // Fallback jika format tidak sesuai
-                $startDate = \Carbon\Carbon::today()->startOfDay();
-                $endDate = \Carbon\Carbon::today()->endOfDay();
+        if ($request->filled('from') && $request->filled('to')) {
+            $from = $request->date('from');
+            $to = $request->date('to');
+
+            if ($from->gt($to)) {
+                [$from, $to] = [$to, $from];
             }
-        } elseif ($tanggalRange) {
-            $startDate = \Carbon\Carbon::parse($tanggalRange)->startOfDay();
-            $endDate = \Carbon\Carbon::parse($tanggalRange)->endOfDay();
+
+            $query
+                ->whereDate('created_at', '>=', $from)
+                ->whereDate('created_at', '<=', $to);
         } else {
-            $startDate = \Carbon\Carbon::today()->startOfDay();
-            $endDate = \Carbon\Carbon::today()->endOfDay();
+            $query->whereDate('created_at', now()->toDateString());
         }
 
-        $transactions = Transaction::with([
-            'detailTransactions.detailProduct' => function ($query) {
-                $query->withTrashed()->with([
-                    'product' => function ($q) {
-                        $q->withTrashed();
-                    }
-                ]);
-            },
-            'customer'
-        ])
-        ->where('user_id', Auth::id())
-        ->whereBetween('created_at', [$startDate, $endDate])
-        ->orderBy('created_at', 'asc')
-        ->get();
+        $transactions = $query
+            ->orderBy('created_at')
+            ->get()
+            ->map(fn (Transaction $transaction) => $this->formatTransaction($transaction))
+            ->values();
 
-        $totalUangDiterima = $transactions->sum(fn ($trx) =>
-            $trx->detailTransactions->sum(fn ($d) => $d->harga_jual * $d->pcs)
-        );
-
-        return view('partials.ajax-filter-riwayat', compact('transactions', 'startDate', 'endDate', 'totalUangDiterima'));
-    }
-
-    public function edit(Transaction $transaction)
-    {
-        $detailProducts = DetailProduct::with(['product' => function ($query) {
-            $query->withTrashed();
-        }])
-        ->where('stok', '>', 0)
-        ->whereHas('product', function ($query) {
-            $query->where('user_id', Auth::id()); // Filter berdasarkan user yang login
-        })
-        ->get();
-
-        return view('transactions.edit', [
-            'transaction' => $transaction->load('detailTransactions.detailProduct.product', 'customer'),
-            'detailProducts' => $detailProducts,
+        return response()->json([
+            'transactions' => $transactions,
+            'total_amount' => $transactions->sum('amount'),
+            'transaction_count' => $transactions->count(),
         ]);
     }
 
-    public function update(Request $request, Transaction $transaction)
+    public function updatePayment(Request $request, int $id)
     {
-        DB::transaction(function () use ($request, $transaction) {
-            if ($request->filled('deleted_ids')) {
-                foreach ($request->deleted_ids as $deletedId) {
-                    $detail = DetailTransaction::withTrashed()->find($deletedId);
-                    if ($detail) {
-                        // Kembalikan stok
-                        $detail->detailProduct()->withTrashed()->first()->increment('stok', $detail->pcs);
+        $validated = $request->validate([
+            'metode_pembayaran' => ['required', 'in:cash,tf'],
+        ]);
 
-                        // Hapus dari DB
-                        $detail->delete();
-                    }
-                }
-            }
+        $transaction = Transaction::query()
+            ->where('user_id', Auth::id())
+            ->findOrFail($id);
 
-            foreach ($request->items as $itemData) {
-                if (isset($itemData['id'])) {
-                    // 🟢 Update item lama
-                    $detail = DetailTransaction::withTrashed()->find($itemData['id']);
+        if ($transaction->metode_pembayaran === 'setor_bos') {
+            return response()->json([
+                'message' => 'Transaksi yang sudah disetor tidak dapat diubah.',
+            ], 422);
+        }
 
-                    $oldPcs = $detail->pcs;
-                    $newPcs = $itemData['pcs'];
-                    $selisih = $newPcs - $oldPcs;
+        $transaction->update([
+            'metode_pembayaran' => $validated['metode_pembayaran'],
+        ]);
 
-                    if ($selisih > 0) {
-                        $detail->detailProduct()->withTrashed()->first()->decrement('stok', $selisih);
-                    } elseif ($selisih < 0) {
-                        $detail->detailProduct()->withTrashed()->first()->increment('stok', abs($selisih));
-                    }
-
-                    $detail->update([
-                        'pcs' => $newPcs,
-                        'harga_jual' => $itemData['harga_jual'],
-                    ]);
-                } else {
-                    // 🆕 Tambah item baru
-                    $detailProduct = DetailProduct::withTrashed()->find($itemData['detail_product_id']);
-
-                    // Kurangi stok
-                    $detailProduct->decrement('stok', $itemData['pcs']);
-
-                    // Simpan detail transaksi baru
-                    $transaction->detailTransactions()->create([
-                        'detail_product_id' => $itemData['detail_product_id'],
-                        'pcs' => $itemData['pcs'],
-                        'harga_jual' => $itemData['harga_jual'],
-                    ]);
-                }
-            }
-        });
-
-        return redirect()->route('riwayat')->with('success', 'Transaksi berhasil diperbarui.');
+        return response()->json([
+            'success' => true,
+            'transaction' => $this->formatPaymentPayload($transaction),
+        ]);
     }
 
-    public function destroy($id)
+    public function depositByDate(Request $request)
     {
-        DB::beginTransaction();
+        $validated = $request->validate([
+            'date' => ['required', 'date'],
+        ]);
 
-        try {
-            // Ambil transaksi dengan detailTransactions dan detailProduct termasuk yang soft deleted
-            $transaction = Transaction::with(['detailTransactions.detailProduct' => function ($query) {
-                $query->withTrashed();
-            }])->findOrFail($id);
+        $date = $request->date('date');
 
-            // Kembalikan stok dari setiap detail transaksi
-            foreach ($transaction->detailTransactions as $detail) {
-                $detail->detailProduct->increment('stok', $detail->pcs);
-            }
+        $transactionIds = Transaction::query()
+            ->where('user_id', Auth::id())
+            ->whereDate('created_at', $date)
+            ->whereIn('metode_pembayaran', ['cash', 'tf'])
+            ->pluck('id');
 
-            // Hapus detail transaksi
-            $transaction->detailTransactions()->delete();
-
-            // Hapus transaksi utama
-            $transaction->delete();
-
-            DB::commit();
-
-            return redirect()->route('riwayat')
-                ->with('success', 'Transaksi berhasil dihapus.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            return redirect()->route('riwayat')
-                ->with('error', 'Gagal menghapus transaksi: ' . $e->getMessage());
+        if ($transactionIds->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'updated_count' => 0,
+                'transactions' => [],
+            ]);
         }
+
+        Transaction::query()
+            ->whereIn('id', $transactionIds)
+            ->update(['metode_pembayaran' => 'setor_bos']);
+
+        $updated = Transaction::query()
+            ->whereIn('id', $transactionIds)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'updated_count' => $updated->count(),
+            'transactions' => $updated
+                ->map(fn (Transaction $transaction) => [
+                    'id' => $transaction->id,
+                    ...$this->formatPaymentPayload($transaction),
+                ])
+                ->values(),
+        ]);
     }
 }

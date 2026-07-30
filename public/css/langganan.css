@@ -1,0 +1,263 @@
+.langganan-page {
+    animation: langgananFadeIn 0.45s ease-out;
+}
+
+@keyframes langgananFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.langganan-header {
+    margin-bottom: 24px;
+}
+
+.langganan-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.langganan-subtitle {
+    margin-top: 6px;
+    font-size: 0.875rem;
+    opacity: 0.65;
+}
+
+.langganan-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .langganan-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .langganan-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.langganan-customer-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+
+    padding: 20px;
+
+    background: var(--card);
+    color: var(--text);
+
+    border: 1px solid var(--border);
+    border-radius: 24px;
+
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+    text-decoration: none;
+
+    transition:
+        transform 0.22s ease,
+        box-shadow 0.22s ease,
+        border-color 0.22s ease;
+}
+
+.langganan-customer-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+    border-color: color-mix(in srgb, var(--text) 14%, var(--border));
+}
+
+.langganan-customer-name {
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.langganan-customer-phone {
+    margin-top: 6px;
+    font-size: 0.8rem;
+    opacity: 0.65;
+}
+
+.langganan-card-arrow {
+    flex-shrink: 0;
+    opacity: 0.45;
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.langganan-customer-card:hover .langganan-card-arrow {
+    transform: translateX(3px);
+    opacity: 0.85;
+}
+
+.langganan-empty {
+    padding: 48px 20px;
+    text-align: center;
+    font-size: 0.9rem;
+    opacity: 0.65;
+}
+
+.langganan-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+
+    margin-bottom: 20px;
+
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    opacity: 0.7;
+    text-decoration: none;
+
+    transition: opacity 0.18s ease;
+}
+
+.langganan-back-link:hover {
+    opacity: 1;
+}
+
+.langganan-stats-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .langganan-stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .langganan-stats-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+.langganan-stat-card {
+    padding: 22px 20px;
+
+    background: var(--card);
+    color: var(--text);
+
+    border: 1px solid var(--border);
+    border-radius: 24px;
+
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+    transition:
+        transform 0.22s ease,
+        box-shadow 0.22s ease;
+}
+
+.langganan-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+}
+
+.langganan-stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.55;
+}
+
+.langganan-stat-value {
+    margin-top: 10px;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.langganan-transaction-card {
+    padding: 20px;
+
+    background: var(--card);
+    color: var(--text);
+
+    border: 1px solid var(--border);
+    border-radius: 24px;
+
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+
+    cursor: pointer;
+
+    transition:
+        transform 0.22s ease,
+        box-shadow 0.22s ease,
+        border-color 0.22s ease;
+}
+
+.langganan-transaction-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+    border-color: color-mix(in srgb, var(--text) 14%, var(--border));
+}
+
+.langganan-transaction-date {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.langganan-transaction-label {
+    margin-top: 14px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.55;
+}
+
+.langganan-transaction-value {
+    margin-top: 4px;
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.langganan-loading {
+    padding: 28px 16px;
+    text-align: center;
+    font-size: 0.9rem;
+    opacity: 0.65;
+}
+
+.langganan-section-title {
+    margin: 28px 0 16px;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.receipt-actions-single {
+    display: flex;
+    justify-content: center;
+    padding: 20px 24px 28px;
+}
+
+.receipt-payment-badge-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 0 24px 8px;
+}
+
+.receipt-payment-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
