@@ -180,6 +180,8 @@
 }
 
 .stok-action-btn {
+    position: relative;
+    overflow: hidden;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -193,9 +195,11 @@
     font-weight: 700;
     cursor: pointer;
     transition:
-        transform 0.18s ease,
-        box-shadow 0.18s ease,
-        border-color 0.18s ease,
+        transform 0.22s ease,
+        box-shadow 0.22s ease,
+        border-color 0.28s ease,
+        background-color 0.28s ease,
+        color 0.28s ease,
         opacity 0.18s ease;
 }
 
@@ -226,9 +230,104 @@
     color: inherit;
 }
 
-.stok-action-btn.is-copied {
-    border-color: color-mix(in srgb, var(--text) 28%, var(--border));
-    background: var(--hover);
+.stok-action-btn.is-success {
+    border-color: #10b981;
+    background: #ecfdf5;
+    color: #047857;
+    animation: stok-success-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow:
+        0 0 0 0 rgba(16, 185, 129, 0.45),
+        0 8px 22px rgba(16, 185, 129, 0.22);
+}
+
+.stok-action-btn.is-success::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+        circle at center,
+        rgba(16, 185, 129, 0.35) 0%,
+        rgba(16, 185, 129, 0) 70%
+    );
+    animation: stok-success-ripple 0.7s ease-out;
+}
+
+.stok-action-btn.is-success .stok-action-circle {
+    color: #059669;
+    animation: stok-success-icon 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.stok-action-btn.is-success .stok-action-label {
+    color: #047857;
+}
+
+.dark .stok-action-btn.is-success {
+    border-color: #34d399;
+    background: rgba(16, 185, 129, 0.16);
+    color: #6ee7b7;
+    box-shadow:
+        0 0 0 0 rgba(52, 211, 153, 0.35),
+        0 8px 22px rgba(16, 185, 129, 0.2);
+}
+
+.dark .stok-action-btn.is-success .stok-action-circle,
+.dark .stok-action-btn.is-success .stok-action-label {
+    color: #6ee7b7;
+}
+
+@keyframes stok-success-pop {
+    0% {
+        transform: scale(1);
+        box-shadow:
+            0 0 0 0 rgba(16, 185, 129, 0.5),
+            0 0 0 rgba(16, 185, 129, 0);
+    }
+
+    45% {
+        transform: scale(1.06);
+        box-shadow:
+            0 0 0 10px rgba(16, 185, 129, 0),
+            0 10px 24px rgba(16, 185, 129, 0.28);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow:
+            0 0 0 0 rgba(16, 185, 129, 0),
+            0 8px 22px rgba(16, 185, 129, 0.22);
+    }
+}
+
+@keyframes stok-success-icon {
+    0% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    40% {
+        transform: scale(1.22) rotate(-8deg);
+    }
+
+    70% {
+        transform: scale(0.94) rotate(4deg);
+    }
+
+    100% {
+        transform: scale(1) rotate(0deg);
+    }
+}
+
+@keyframes stok-success-ripple {
+    0% {
+        opacity: 0.85;
+        transform: scale(0.55);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.35);
+    }
 }
 
 .stok-legend {
@@ -500,6 +599,7 @@
         border-radius: 0;
         background: transparent;
         box-shadow: none;
+        overflow: visible;
     }
 
     .stok-action-btn:hover:not(:disabled) {
@@ -519,9 +619,11 @@
         background: var(--card);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
         transition:
-            transform 0.16s ease,
-            box-shadow 0.16s ease,
-            background-color 0.16s ease;
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            background-color 0.28s ease,
+            border-color 0.28s ease,
+            color 0.28s ease;
     }
 
     .stok-action-btn:hover:not(:disabled) .stok-action-circle {
@@ -556,9 +658,85 @@
         border-color: #fff;
     }
 
-    .stok-action-btn.is-copied .stok-action-circle {
-        background: var(--hover);
-        border-color: color-mix(in srgb, var(--text) 28%, var(--border));
+    .stok-action-btn.is-success {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+        color: #047857;
+        animation: none;
+    }
+
+    .stok-action-btn.is-success::after {
+        display: none;
+    }
+
+    .stok-action-btn.is-success .stok-action-circle {
+        background: #ecfdf5;
+        border-color: #10b981;
+        color: #059669;
+        animation: stok-success-circle 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+        box-shadow:
+            0 0 0 0 rgba(16, 185, 129, 0.45),
+            0 8px 18px rgba(16, 185, 129, 0.25);
+    }
+
+    .stok-action-btn.is-success .stok-action-label {
+        color: #047857;
+        opacity: 1;
+        animation: stok-success-label 0.45s ease;
+    }
+
+    .dark .stok-action-btn.is-success {
+        background: transparent;
+        color: #6ee7b7;
+    }
+
+    .dark .stok-action-btn.is-success .stok-action-circle {
+        background: rgba(16, 185, 129, 0.18);
+        border-color: #34d399;
+        color: #6ee7b7;
+        box-shadow:
+            0 0 0 0 rgba(52, 211, 153, 0.35),
+            0 8px 18px rgba(16, 185, 129, 0.22);
+    }
+
+    .dark .stok-action-btn.is-success .stok-action-label {
+        color: #6ee7b7;
+    }
+
+    @keyframes stok-success-circle {
+        0% {
+            transform: scale(1);
+            box-shadow:
+                0 0 0 0 rgba(16, 185, 129, 0.55),
+                0 1px 3px rgba(0, 0, 0, 0.06);
+        }
+
+        40% {
+            transform: scale(1.12);
+            box-shadow:
+                0 0 0 12px rgba(16, 185, 129, 0),
+                0 10px 22px rgba(16, 185, 129, 0.3);
+        }
+
+        100% {
+            transform: scale(1);
+            box-shadow:
+                0 0 0 0 rgba(16, 185, 129, 0),
+                0 8px 18px rgba(16, 185, 129, 0.25);
+        }
+    }
+
+    @keyframes stok-success-label {
+        0% {
+            opacity: 0.5;
+            transform: translateY(3px);
+        }
+
+        100% {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     .stok-action-label {
@@ -568,6 +746,9 @@
         color: var(--text);
         opacity: 0.82;
         max-width: 4.75rem;
+        transition:
+            color 0.28s ease,
+            opacity 0.28s ease;
     }
 }
 

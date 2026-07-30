@@ -6,6 +6,9 @@ function stokAuditPage() {
         loading: false,
         saving: false,
         copied: false,
+        checkedAll: false,
+        checkedAllTimer: null,
+        copiedTimer: null,
         calendarOpen: false,
 
         selectedDate: new Date(today),
@@ -194,6 +197,26 @@ function stokAuditPage() {
             product.pcs = Math.max(0, parseInt(product.pcs, 10) || 0);
         },
 
+        pulseSuccess(flag) {
+            const timerKey = `${flag}Timer`;
+
+            if (this[timerKey]) {
+                clearTimeout(this[timerKey]);
+                this[timerKey] = null;
+            }
+
+            this[flag] = false;
+
+            requestAnimationFrame(() => {
+                this[flag] = true;
+
+                this[timerKey] = setTimeout(() => {
+                    this[flag] = false;
+                    this[timerKey] = null;
+                }, 1600);
+            });
+        },
+
         checkAll() {
             this.providers.forEach((provider) => {
                 provider.products.forEach((product) => {
@@ -204,6 +227,7 @@ function stokAuditPage() {
             });
 
             this.persistLocalProgress();
+            this.pulseSuccess("checkedAll");
         },
 
         collectItems() {
@@ -378,11 +402,7 @@ function stokAuditPage() {
 
                 await navigator.clipboard.writeText(text);
 
-                this.copied = true;
-
-                setTimeout(() => {
-                    this.copied = false;
-                }, 1500);
+                this.pulseSuccess("copied");
             } catch (error) {
                 console.error(error);
                 this.showToast("error", "Gagal", "Gagal menyalin laporan.");

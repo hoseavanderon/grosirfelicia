@@ -63,7 +63,8 @@
                 </div>
 
                 <div class="stok-actions">
-                    <button type="button" @click="checkAll()" class="stok-action-btn" :disabled="loading || saving">
+                    <button type="button" @click="checkAll()" class="stok-action-btn"
+                        :class="checkedAll ? 'is-success' : ''" :disabled="loading || saving">
                         <span class="stok-action-circle">
                             <svg xmlns="http://www.w3.org/2000/svg" class="stok-icon h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
@@ -71,7 +72,7 @@
                                     d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </span>
-                        <span class="stok-action-label">Check Semua</span>
+                        <span class="stok-action-label" x-text="checkedAll ? 'Selesai' : 'Check Semua'"></span>
                     </button>
                     <button type="button" @click="saveProgress()" class="stok-action-btn stok-action-btn-primary"
                         :disabled="loading || saving">
@@ -85,7 +86,7 @@
                         <span class="stok-action-label" x-text="saving ? 'Menyimpan...' : 'Save'"></span>
                     </button>
                     <button type="button" @click="copyWhatsAppReport()" class="stok-action-btn"
-                        :class="copied ? 'is-copied' : ''" :disabled="loading">
+                        :class="copied ? 'is-success' : ''" :disabled="loading">
                         <span class="stok-action-circle">
                             <svg xmlns="http://www.w3.org/2000/svg" class="stok-icon h-4 w-4" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor" stroke-width="2">
