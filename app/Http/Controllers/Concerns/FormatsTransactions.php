@@ -66,12 +66,12 @@ trait FormatsTransactions
             'cash' => [
                 'label' => 'Lunas - Cash',
                 'class' => 'badge-paid-cash',
-                'copy_status' => 'Lunas',
+                'copy_status' => '✅',
             ],
             'tf' => [
                 'label' => 'Lunas - Transfer',
                 'class' => 'badge-paid-tf',
-                'copy_status' => 'Lunas',
+                'copy_status' => 'TF ✅',
             ],
             'setor_bos' => [
                 'label' => 'Lunas',
@@ -81,7 +81,7 @@ trait FormatsTransactions
             default => [
                 'label' => 'Belum Bayar',
                 'class' => 'badge-unpaid',
-                'copy_status' => 'Belum Bayar',
+                'copy_status' => '',
             ],
         };
     }

@@ -37,7 +37,8 @@ class RiwayatTransaksiController extends Controller
                 ->whereDate('created_at', '>=', $from)
                 ->whereDate('created_at', '<=', $to);
         } else {
-            $query->whereDate('created_at', now()->toDateString());
+            // Default / copy: semua tanggal yang belum disetor ke bos
+            $query->whereIn('metode_pembayaran', ['belum_bayar', 'cash', 'tf']);
         }
 
         $transactions = $query

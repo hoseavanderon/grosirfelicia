@@ -86,7 +86,9 @@
 
         <div x-show="!loading && transactions.length === 0" x-cloak
             class="transaksi-empty surface-card rounded-3xl shadow-sm">
-            Tidak ada transaksi pada rentang tanggal ini.
+            <span x-text="isUnsettledMode
+                ? 'Tidak ada transaksi yang belum disetor.'
+                : 'Tidak ada transaksi pada rentang tanggal ini.'"></span>
         </div>
 
         <div class="space-y-6">

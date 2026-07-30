@@ -36,8 +36,8 @@ function transaksiPage() {
         totalAmount: 0,
         paymentOptions,
 
-        fromDate: new Date(today),
-        toDate: new Date(today),
+        fromDate: null,
+        toDate: null,
         displayMonth: new Date(today),
         weekdays: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
 
@@ -45,20 +45,28 @@ function transaksiPage() {
             this.fetchTransactions();
         },
 
+        get isUnsettledMode() {
+            return !(this.fromDate && this.toDate);
+        },
+
         get fromLabel() {
-            return this.formatShortDate(this.fromDate);
+            return this.fromDate ? this.formatShortDate(this.fromDate) : "";
         },
 
         get toLabel() {
-            return this.formatShortDate(this.toDate);
+            return this.toDate ? this.formatShortDate(this.toDate) : "";
         },
 
         get formattedRange() {
             if (!this.fromDate) {
-                return "Pilih tanggal";
+                return "Belum Disetor";
             }
 
-            if (this.toDate && !this.isSameDate(this.fromDate, this.toDate)) {
+            if (!this.toDate) {
+                return this.fromLabel;
+            }
+
+            if (!this.isSameDate(this.fromDate, this.toDate)) {
                 return `${this.fromLabel} - ${this.toLabel}`;
             }
 
@@ -66,9 +74,11 @@ function transaksiPage() {
         },
 
         get summaryTitle() {
+            if (this.isUnsettledMode) {
+                return "Belum Disetor";
+            }
+
             if (
-                this.fromDate &&
-                this.toDate &&
                 this.isSameDate(this.fromDate, this.toDate) &&
                 this.isSameDate(this.fromDate, today)
             ) {
@@ -211,6 +221,26 @@ function transaksiPage() {
             return data.transactions || [];
         },
 
+        async fetchUnsettledTransactions() {
+            const response = await fetch("/transactions/list", {
+                headers: {
+                    Accept: "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to load transactions");
+            }
+
+            const data = await response.json();
+
+            return {
+                transactions: data.transactions || [],
+                transaction_count: data.transaction_count || 0,
+                total_amount: data.total_amount || 0,
+            };
+        },
+
         async fetchTransactions() {
             this.loading = true;
             this.paymentMenuOpen = null;
@@ -261,11 +291,23 @@ function transaksiPage() {
             return `${year}-${month}-${day}`;
         },
 
-        getOutstandingTransactions() {
-            return this.transactions.filter(
-                (transaction) =>
-                    transaction.metode_pembayaran === "belum_bayar",
+        isCopyableTransaction(transaction) {
+            return ["belum_bayar", "cash", "tf"].includes(
+                transaction.metode_pembayaran,
             );
+        },
+
+        getCopyPaymentIndicator(transaction) {
+            switch (transaction.metode_pembayaran) {
+                case "cash":
+                    return "✅";
+
+                case "tf":
+                    return " TF✅";
+
+                default:
+                    return "";
+            }
         },
 
         get editTotal() {
@@ -287,20 +329,23 @@ function transaksiPage() {
             );
         },
 
+        formatCopyDate(dateKey) {
+            const [year, month, day] = dateKey.split("-");
+
+            return `${day}/${month}/${year}`;
+        },
+
         buildCopyText(transactions) {
-            const outstanding = transactions.filter(
-                (transaction) =>
-                    transaction.metode_pembayaran === "belum_bayar",
+            const copyable = transactions.filter((transaction) =>
+                this.isCopyableTransaction(transaction),
             );
 
             const groups = {};
 
-            outstanding.forEach((transaction) => {
+            copyable.forEach((transaction) => {
                 const dateKey = (transaction.datetime || "").split(" ")[0];
 
-                if (!dateKey) {
-                    return;
-                }
+                if (!dateKey) return;
 
                 if (!groups[dateKey]) {
                     groups[dateKey] = [];
@@ -309,56 +354,62 @@ function transaksiPage() {
                 groups[dateKey].push(transaction);
             });
 
+            const dateKeys = Object.keys(groups).sort();
             const result = [];
 
-            Object.keys(groups)
-                .sort()
-                .forEach((dateKey) => {
-                    const list = groups[dateKey];
+            dateKeys.forEach((dateKey, groupIndex) => {
+                const list = groups[dateKey];
 
-                    const total = list.reduce(
-                        (sum, item) => sum + (item.amount || 0),
-                        0,
-                    );
+                const total = list.reduce(
+                    (sum, item) => sum + Number(item.amount || 0),
+                    0,
+                );
 
-                    const [year, month, day] = dateKey.split("-");
+                // Header
+                result.push(
+                    `${this.formatCopyDate(dateKey)} ( ${list.length} nota => ${this.formatRupiah(total)} )`,
+                );
+
+                // Detail
+                list.forEach((transaction, index) => {
+                    const indicator =
+                        this.getCopyPaymentIndicator(transaction) || "";
 
                     result.push(
-                        `${parseInt(day)}/${parseInt(month)}/${year.slice(-2)} ( ${list.length} nota => ${this.formatRupiah(total)} )`,
+                        `${index + 1}. ${transaction.customer} ( ${this.formatRupiah(transaction.amount)} )${indicator}`,
                     );
-
-                    list.forEach((transaction, index) => {
-                        result.push(
-                            `${index + 1}. ${transaction.customer} ( ${this.formatRupiah(transaction.amount)} )`,
-                        );
-                    });
-
-                    result.push("");
                 });
+
+                // Blank line between dates
+                if (groupIndex !== dateKeys.length - 1) {
+                    result.push("");
+                }
+            });
 
             return result.join("\n");
         },
 
         async copySummary() {
             try {
-                const outstanding = this.getOutstandingTransactions();
+                const data = await this.fetchUnsettledTransactions();
+                const transactions = data.transactions || [];
 
-                if (outstanding.length === 0) {
+                if (transactions.length === 0) {
                     this.showToast(
                         "info",
                         "Info",
-                        "Saat ini tidak ada tagihan yang belum dibayar.",
+                        "Tidak ada transaksi yang dapat disalin.",
                     );
                     return;
                 }
 
-                const text = this.buildCopyText(this.transactions);
+                const text = this.buildCopyText(transactions);
 
-                if (!text.trim()) {
+                if (!text) {
                     this.showToast(
                         "info",
                         "Info",
-                        "Saat ini tidak ada tagihan yang belum dibayar.",
+                        "Tidak ada transaksi yang dapat disalin.",
                     );
                     return;
                 }
@@ -372,12 +423,27 @@ function transaksiPage() {
                 }, 1500);
             } catch (error) {
                 console.error(error);
-                this.showToast(
-                    "error",
-                    "Gagal",
-                    "Gagal menyalin laporan.",
-                );
+                this.showToast("error", "Gagal", "Gagal menyalin laporan.");
             }
+        },
+
+        refreshTotals() {
+            this.transactionCount = this.transactions.length;
+            this.totalAmount = this.transactions.reduce(
+                (sum, transaction) => sum + (transaction.amount || 0),
+                0,
+            );
+        },
+
+        pruneSettledTransactions() {
+            if (!this.isUnsettledMode) {
+                return;
+            }
+
+            this.transactions = this.transactions.filter((transaction) =>
+                this.isCopyableTransaction(transaction),
+            );
+            this.refreshTotals();
         },
 
         isSameDate(a, b) {
@@ -476,8 +542,8 @@ function transaksiPage() {
         },
 
         resetDate() {
-            this.fromDate = new Date(today);
-            this.toDate = new Date(today);
+            this.fromDate = null;
+            this.toDate = null;
             this.displayMonth = new Date(today);
             this.fetchTransactions();
             this.calendarOpen = false;
@@ -670,6 +736,7 @@ function transaksiPage() {
                 }
 
                 this.applyBulkPaymentUpdates(updates);
+                this.pruneSettledTransactions();
 
                 this.showToast(
                     "success",
@@ -851,9 +918,7 @@ function transaksiPage() {
                 this.productOptions.length > 0 ? 0 : -1;
 
             this.$nextTick(() => {
-                document
-                    .getElementById(`product-search-${item.key}`)
-                    ?.focus();
+                document.getElementById(`product-search-${item.key}`)?.focus();
             });
         },
 
@@ -973,7 +1038,14 @@ function transaksiPage() {
                         no_telp: this.selectedTransaction.phone || "",
                     },
                     customerQuery: "",
-                    items: items.length > 0 ? items : [this.createEditItemFromOption(this.productOptions[0])],
+                    items:
+                        items.length > 0
+                            ? items
+                            : [
+                                  this.createEditItemFromOption(
+                                      this.productOptions[0],
+                                  ),
+                              ],
                 };
 
                 this.editCustomerDropdownOpen = false;
@@ -1231,7 +1303,11 @@ function transaksiPage() {
         },
 
         async saveEdit() {
-            if (this.savingEdit || !this.selectedTransaction || !this.editForm) {
+            if (
+                this.savingEdit ||
+                !this.selectedTransaction ||
+                !this.editForm
+            ) {
                 return;
             }
 
@@ -1327,7 +1403,9 @@ function transaksiPage() {
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.message || "Gagal menghapus transaksi");
+                    throw new Error(
+                        data.message || "Gagal menghapus transaksi",
+                    );
                 }
 
                 this.transactions = this.transactions.filter(
@@ -1358,6 +1436,5 @@ function transaksiPage() {
                 this.deletingTransaction = false;
             }
         },
-
     };
 }
