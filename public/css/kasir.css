@@ -317,7 +317,11 @@
 
     user-select: none;
     -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
     -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+    -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 
     transition:
@@ -325,35 +329,21 @@
         transform 0.15s ease;
 }
 
+.product-detail *,
+.product-detail *::before,
+.product-detail *::after {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-drag: none;
+}
+
 .product-detail:hover {
     background: var(--hover);
 
     transform: translateX(2px);
-}
-
-.product-detail-info-btn {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    margin-left: 6px;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    color: var(--text);
-    opacity: 0.75;
-    flex-shrink: 0;
-    transition:
-        opacity 0.15s ease,
-        background-color 0.15s ease,
-        border-color 0.15s ease;
-}
-
-.product-detail-info-btn:hover,
-.product-detail-info-btn:active {
-    opacity: 1;
-    background: var(--hover);
 }
 
 .batch-exp {
@@ -1009,29 +999,63 @@
         text-align: center;
     }
 
+@media (max-width: 480px) {
+    .checkout-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .clear-cart-btn,
+    .checkout-btn {
+        width: 100%;
+        text-align: center;
+    }
+
+    .checkout-footer-total {
+        width: 100%;
+        text-align: center;
+    }
+
     .confirm-checkout-body {
-        padding: 24px 18px 18px;
+        padding: 28px 20px 22px;
     }
 
     .confirm-checkout-title {
-        font-size: 17px;
+        font-size: 18px;
         line-height: 1.45;
         padding: 0 4px;
     }
 
     .confirm-checkout-actions {
-        margin-top: 22px;
+        margin-top: 28px;
         flex-direction: column;
-        gap: 12px;
+        gap: 14px;
     }
 
     .confirm-checkout-btn {
         width: 100%;
-        min-height: 52px;
+        min-height: 58px;
         height: auto;
-        padding: 14px 16px;
-        font-size: 15px;
-        border-radius: 16px;
+        padding: 16px 20px;
+        font-size: 16px;
+        border-radius: 18px;
+    }
+
+    .confirm-clear-cart-body {
+        padding: 32px 20px 24px;
+    }
+
+    .confirm-clear-cart-actions {
+        margin-top: 32px;
+        gap: 16px;
+    }
+
+    .confirm-clear-cart-btn {
+        min-height: 64px;
+        padding: 18px 22px;
+        font-size: 17px;
+        font-weight: 700;
+        border-radius: 18px;
     }
 
     .price-control-input {
@@ -1045,35 +1069,49 @@
 }
 
 @media (hover: none) and (pointer: coarse) {
-    .product-detail {
-        grid-template-columns:
-            80px
-            1fr
-            auto
-            auto;
-        padding-right: 12px;
-    }
-
-    .product-detail-info-btn {
-        display: inline-flex;
-    }
-
     .product-detail:hover {
         transform: none;
     }
 
+    .confirm-checkout-body {
+        padding: 28px 20px 22px;
+    }
+
+    .confirm-checkout-title {
+        font-size: 18px;
+        line-height: 1.45;
+    }
+
     .confirm-checkout-actions {
+        margin-top: 28px;
         flex-direction: column;
-        gap: 12px;
+        gap: 14px;
     }
 
     .confirm-checkout-btn {
         width: 100%;
-        min-height: 52px;
+        min-height: 58px;
         height: auto;
-        padding: 14px 16px;
-        font-size: 15px;
-        border-radius: 16px;
+        padding: 16px 20px;
+        font-size: 16px;
+        border-radius: 18px;
+    }
+
+    .confirm-clear-cart-body {
+        padding: 32px 20px 24px;
+    }
+
+    .confirm-clear-cart-actions {
+        margin-top: 32px;
+        gap: 16px;
+    }
+
+    .confirm-clear-cart-btn {
+        min-height: 64px;
+        padding: 18px 22px;
+        font-size: 17px;
+        font-weight: 700;
+        border-radius: 18px;
     }
 
     .customer-clear-btn {

@@ -109,16 +109,15 @@
                     <template x-for="detail in product.details.filter(d => d.stock > 0)" :key="detail.id">
 
                         <div class="product-detail"
-                            @mousedown.left="startHold({
-                        ...product,
-                        ...detail
-                    }, $event)"
-                            @mouseup="cancelHold()" @mouseleave="cancelHold()"
+                            @mousedown="startHold({ ...product, ...detail }, $event)"
+                            @mouseup="cancelHold()"
+                            @mouseleave="cancelHold()"
+                            @touchstart="startHold({ ...product, ...detail }, $event)"
+                            @touchmove="onHoldTouchMove($event)"
+                            @touchend="cancelHold()"
+                            @touchcancel="cancelHold()"
                             @contextmenu.prevent
-                            @click="handleProductClick({
-                        ...product,
-                        ...detail
-                    })">
+                            @click="handleProductClick({ ...product, ...detail })">
 
                             {{-- Expired --}}
                             <div class="batch-exp">
@@ -138,23 +137,6 @@
                                 <span class="batch-stock-unit">pcs</span>
 
                             </div>
-
-                            <button type="button" class="product-detail-info-btn"
-                                aria-label="Lihat detail produk"
-                                @click.stop="openProductDetail({
-                                    ...product,
-                                    ...detail
-                                })">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M11.25 11.25h.008v.008H11.25V11.25zm.75 9a9 9 0 100-18 9 9 0 000 18z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M12 15.75v-3.75" />
-                                    <path stroke-linecap="round" stroke-linejoin="round"
-                                        d="M12 8.25h.008v.008H12V8.25z" />
-                                </svg>
-                            </button>
 
                         </div>
 

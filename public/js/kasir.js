@@ -9,6 +9,8 @@ function kasirPage(categories, products) {
 
         holdTimer: null,
         longPressed: false,
+        holdTouchStartX: null,
+        holdTouchStartY: null,
 
         isDragging: false,
         sortableInstance: null,
@@ -266,19 +268,19 @@ function kasirPage(categories, products) {
                 return;
             }
 
-            // Touch devices use the explicit detail button instead of long-press.
-            if (
-                event?.pointerType === "touch" ||
-                event?.type === "touchstart" ||
-                (typeof window !== "undefined" &&
-                    window.matchMedia("(hover: none) and (pointer: coarse)")
-                        .matches &&
-                    event?.type !== "mousedown")
-            ) {
+            // Ignore non-primary mouse buttons.
+            if (event?.type === "mousedown" && event.button !== 0) {
                 return;
             }
 
             this.longPressed = false;
+            this.holdTouchStartX = null;
+            this.holdTouchStartY = null;
+
+            if (event?.type === "touchstart" && event.touches?.[0]) {
+                this.holdTouchStartX = event.touches[0].clientX;
+                this.holdTouchStartY = event.touches[0].clientY;
+            }
 
             clearTimeout(this.holdTimer);
 
@@ -288,13 +290,46 @@ function kasirPage(categories, products) {
                 }
 
                 this.longPressed = true;
-
+                this.triggerLongPressHaptic();
                 this.openProductDetail(product);
             }, 500);
         },
 
+        onHoldTouchMove(event) {
+            if (this.holdTouchStartX === null || this.holdTouchStartY === null) {
+                return;
+            }
+
+            const touch = event.touches?.[0];
+
+            if (!touch) {
+                return;
+            }
+
+            const movedX = Math.abs(touch.clientX - this.holdTouchStartX);
+            const movedY = Math.abs(touch.clientY - this.holdTouchStartY);
+
+            // Cancel long-press when the user is scrolling.
+            if (movedX > 12 || movedY > 12) {
+                this.cancelHold();
+            }
+        },
+
         cancelHold() {
             clearTimeout(this.holdTimer);
+            this.holdTimer = null;
+            this.holdTouchStartX = null;
+            this.holdTouchStartY = null;
+        },
+
+        triggerLongPressHaptic() {
+            try {
+                if (typeof navigator !== "undefined" && navigator.vibrate) {
+                    navigator.vibrate(18);
+                }
+            } catch {
+                // Vibration is optional; ignore unsupported devices.
+            }
         },
 
         openProductDetail(product) {
