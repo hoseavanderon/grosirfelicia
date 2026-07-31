@@ -113,6 +113,10 @@ class JejakProdukService
         $to = Carbon::parse($toDate)->endOfDay();
 
         $entries = JejakProduk::query()
+            ->with([
+                'transaction:id,customer_id',
+                'transaction.customer:id,nama_pelanggan',
+            ])
             ->where('user_id', $userId)
             ->where('product_id', $productId)
             ->whereBetween('created_at', [$from, $to])
@@ -182,8 +186,26 @@ class JejakProdukService
             'qty_label' => $this->formatQtyLabel((int) $entry->qty),
             'nomor_nota' => $entry->nomor_nota,
             'reference_label' => $entry->movement_type === JejakProduk::TYPE_MASUK ? 'Nomor Nota' : 'Nomor Nota',
+            'store_name' => $this->resolveStoreName($entry),
             'stock_after' => (int) $entry->stock_after,
         ];
+    }
+
+    private function resolveStoreName(JejakProduk $entry): ?string
+    {
+        // Stock In (incoming goods) never shows a store name.
+        if ($entry->movement_type === JejakProduk::TYPE_MASUK) {
+            return null;
+        }
+
+        // Store Order / Cancelled Store Order are linked to a transaction.
+        if (! $entry->transaction_id) {
+            return null;
+        }
+
+        $storeName = trim((string) ($entry->transaction?->customer?->nama_pelanggan ?? ''));
+
+        return $storeName !== '' ? $storeName : null;
     }
 
     private function movementLabel(string $movementType): string

@@ -207,6 +207,11 @@
                                             <span class="jejak-timeline-key theme-text-muted">Keterangan</span>
                                             <span class="jejak-timeline-badge" x-text="entry.movement_label"></span>
                                         </div>
+                                        <div class="jejak-timeline-row" x-show="entry.store_name" x-cloak>
+                                            <span class="jejak-timeline-key theme-text-muted">Toko</span>
+                                            <span class="jejak-timeline-value theme-text"
+                                                x-text="entry.store_name"></span>
+                                        </div>
                                         <div class="jejak-timeline-row">
                                             <span class="jejak-timeline-key theme-text-muted">Qty</span>
                                             <span class="jejak-timeline-value theme-text" x-text="entry.qty_label"></span>
