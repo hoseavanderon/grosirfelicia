@@ -261,8 +261,20 @@ function kasirPage(categories, products) {
             }
         },
 
-        startHold(product) {
+        startHold(product, event = null) {
             if (this.isDragging) {
+                return;
+            }
+
+            // Touch devices use the explicit detail button instead of long-press.
+            if (
+                event?.pointerType === "touch" ||
+                event?.type === "touchstart" ||
+                (typeof window !== "undefined" &&
+                    window.matchMedia("(hover: none) and (pointer: coarse)")
+                        .matches &&
+                    event?.type !== "mousedown")
+            ) {
                 return;
             }
 
@@ -277,16 +289,18 @@ function kasirPage(categories, products) {
 
                 this.longPressed = true;
 
-                this.selectedProduct = product;
-
-                this.qty = 1;
-
-                this.productModal = true;
+                this.openProductDetail(product);
             }, 500);
         },
 
         cancelHold() {
             clearTimeout(this.holdTimer);
+        },
+
+        openProductDetail(product) {
+            this.selectedProduct = product;
+            this.qty = 1;
+            this.productModal = true;
         },
 
         handleProductClick(product) {

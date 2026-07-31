@@ -315,6 +315,11 @@
 
     cursor: pointer;
 
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    touch-action: manipulation;
+
     transition:
         background-color 0.15s ease,
         transform 0.15s ease;
@@ -324,6 +329,31 @@
     background: var(--hover);
 
     transform: translateX(2px);
+}
+
+.product-detail-info-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-left: 6px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    opacity: 0.75;
+    flex-shrink: 0;
+    transition:
+        opacity 0.15s ease,
+        background-color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.product-detail-info-btn:hover,
+.product-detail-info-btn:active {
+    opacity: 1;
+    background: var(--hover);
 }
 
 .batch-exp {
@@ -516,6 +546,8 @@
 .customer-input--selected {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 
     background: var(--hover);
     border-color: var(--text);
@@ -529,6 +561,40 @@
 
 .customer-input--selected:focus {
     box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.06);
+}
+
+.customer-selected-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.customer-clear-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    opacity: 0.75;
+    transition:
+        opacity 0.15s ease,
+        background-color 0.15s ease,
+        transform 0.15s ease;
+}
+
+.customer-clear-btn:hover {
+    opacity: 1;
+    background: var(--hover);
+}
+
+.customer-clear-btn:active {
+    transform: scale(0.94);
 }
 
 .customer-dropdown {
@@ -943,16 +1009,76 @@
         text-align: center;
     }
 
+    .confirm-checkout-body {
+        padding: 24px 18px 18px;
+    }
+
+    .confirm-checkout-title {
+        font-size: 17px;
+        line-height: 1.45;
+        padding: 0 4px;
+    }
+
     .confirm-checkout-actions {
+        margin-top: 22px;
         flex-direction: column;
+        gap: 12px;
     }
 
     .confirm-checkout-btn {
         width: 100%;
+        min-height: 52px;
+        height: auto;
+        padding: 14px 16px;
+        font-size: 15px;
+        border-radius: 16px;
     }
 
     .price-control-input {
         max-width: 84px;
+    }
+
+    .customer-clear-btn {
+        width: 32px;
+        height: 32px;
+    }
+}
+
+@media (hover: none) and (pointer: coarse) {
+    .product-detail {
+        grid-template-columns:
+            80px
+            1fr
+            auto
+            auto;
+        padding-right: 12px;
+    }
+
+    .product-detail-info-btn {
+        display: inline-flex;
+    }
+
+    .product-detail:hover {
+        transform: none;
+    }
+
+    .confirm-checkout-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .confirm-checkout-btn {
+        width: 100%;
+        min-height: 52px;
+        height: auto;
+        padding: 14px 16px;
+        font-size: 15px;
+        border-radius: 16px;
+    }
+
+    .customer-clear-btn {
+        width: 32px;
+        height: 32px;
     }
 }
 

@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <title>Login - Grosir Felicia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -49,6 +49,11 @@
         #password-modal {
             opacity: 0;
             transition: opacity 220ms ease;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            align-items: center;
+            justify-content: center;
         }
 
         #password-modal .modal-panel {
@@ -56,6 +61,12 @@
             transform: translateY(12px) scale(0.98);
             transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 220ms ease;
             will-change: transform, opacity;
+            width: 100%;
+            max-height: min(92dvh, 920px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
         }
 
         #password-modal.modal-open {
@@ -74,6 +85,56 @@
         #password-modal.modal-closing .modal-panel {
             opacity: 0;
             transform: translateY(8px) scale(0.98);
+        }
+
+        #password-form {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            flex: 1 1 auto;
+        }
+
+        .login-actions {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            padding-top: 0.75rem;
+            padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
+            z-index: 2;
+        }
+
+        @media (min-width: 640px) {
+            .login-actions {
+                grid-template-columns: 1fr 1fr;
+                position: static;
+                padding-bottom: 0;
+            }
+        }
+
+        @media (max-width: 639px) {
+            #password-modal {
+                align-items: flex-start;
+                justify-content: flex-start;
+                padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+            }
+
+            #password-modal .modal-panel {
+                margin-top: 0;
+                max-height: calc(100dvh - 24px);
+                border-radius: 1rem;
+            }
+
+            #password-input {
+                font-size: 16px; /* prevents iOS zoom on focus */
+            }
+
+            .login-actions button {
+                min-height: 48px;
+            }
         }
 
         @keyframes cardEnter {
@@ -121,7 +182,7 @@
         </section>
     </main>
 
-    <div id="password-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/45 p-4">
+    <div id="password-modal" class="fixed inset-0 z-50 hidden bg-black/45 p-4">
         <div class="modal-panel w-full max-w-md rounded-2xl border border-ink-200 bg-white p-5 shadow-soft sm:p-6">
             <div class="mb-5 flex items-center justify-between">
                 <div>
@@ -148,10 +209,11 @@
                 </div>
             </div>
 
-            <form id="password-form" class="space-y-3">
+            <form id="password-form">
                 <label for="password-input" class="block text-sm font-medium">Password</label>
                 <div class="relative">
                     <input id="password-input" name="password" type="password" required autocomplete="current-password"
+                        enterkeyhint="go" inputmode="text"
                         class="w-full rounded-xl border border-ink-300 bg-white px-4 py-2.5 pr-12 text-sm outline-none transition focus:border-ink-900"
                         placeholder="Masukkan password">
                     <button id="toggle-password-button" type="button"
@@ -179,7 +241,7 @@
                     Password yang Anda masukkan salah!
                 </p>
 
-                <div class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div class="login-actions">
                     <button id="cancel-login-button" type="button"
                         class="rounded-xl border border-ink-300 px-4 py-2.5 text-sm font-medium transition hover:bg-ink-100">
                         Batal
@@ -257,7 +319,13 @@
             requestAnimationFrame(() => {
                 modal.classList.remove("modal-closing");
                 modal.classList.add("modal-open");
-                passwordInput.focus();
+                passwordInput.focus({ preventScroll: true });
+                setTimeout(() => {
+                    passwordInput.scrollIntoView({
+                        block: "center",
+                        behavior: "smooth",
+                    });
+                }, 280);
             });
         };
 
@@ -302,7 +370,23 @@
             passwordInput.type = isHidden ? "text" : "password";
             eyeOpenIcon.classList.toggle("hidden", !isHidden);
             eyeOffIcon.classList.toggle("hidden", isHidden);
-            passwordInput.focus();
+            passwordInput.focus({ preventScroll: true });
+        });
+
+        passwordInput.addEventListener("focus", () => {
+            setTimeout(() => {
+                const actions = document.querySelector(".login-actions");
+
+                passwordInput.scrollIntoView({
+                    block: "center",
+                    behavior: "smooth",
+                });
+
+                actions?.scrollIntoView({
+                    block: "nearest",
+                    behavior: "smooth",
+                });
+            }, 350);
         });
 
         passwordForm.addEventListener(
