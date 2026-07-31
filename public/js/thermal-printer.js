@@ -1,6 +1,12 @@
 /**
  * Bluetooth thermal printer helper (ESC/POS over Web Bluetooth).
- * Shared by Riwayat Transaksi and halaman_kasir.html.
+ * Shared by Riwayat Transaksi and other POS pages.
+ *
+ * Architecture:
+ * - Receipt builders (unchanged): buildReceiptData / buildReceiptHtml
+ * - Printer Manager: pair / reconnect / connect / disconnect / storage
+ * - Print orchestration: printTransaction / printTransactionWithFallback
+ * - UI bridge: Alpine registers handlers for modal, overlay, and toasts
  */
 const ThermalPrinter = (() => {
     const OPTIONAL_SERVICES = [
@@ -20,8 +26,22 @@ const ThermalPrinter = (() => {
         "000018f0-0000-1000-8000-00805f9b34fb",
     ];
 
+    const STORAGE_KEY = "grosirfelicia.thermalPrinters";
+
     let cachedDevice = null;
     let cachedCharacteristic = null;
+    let cachedPrinterMeta = null;
+    const disconnectBoundDevices = new WeakSet();
+
+    let uiHandlers = {
+        openModal: null,
+        closeModal: null,
+        setOverlay: null,
+        clearOverlay: null,
+        refreshPrinters: null,
+    };
+
+    let pendingPrint = null;
 
     class EscPosEncoder {
         constructor() {
@@ -302,10 +322,6 @@ window.onload = function () {
         (transaction.items || []).forEach((item) => {
             encoder.text(item.product_name || "").newline();
 
-            if (item.expired_label) {
-                encoder.text(`Exp: ${item.expired_label}`).newline();
-            }
-
             encoder
                 .text(
                     padLine(
@@ -343,7 +359,280 @@ window.onload = function () {
 
         return encoder.build();
     }
-    async function findWritableCharacteristic(server) {
+
+    /* ---------------------------------
+     * UI helpers
+     * --------------------------------- */
+
+    function toast(type, title, message = "") {
+        window.dispatchEvent(
+            new CustomEvent("toast", {
+                detail: { type, title, message },
+            }),
+        );
+    }
+
+    function registerUi(handlers = {}) {
+        uiHandlers = {
+            ...uiHandlers,
+            ...handlers,
+        };
+    }
+
+    function setOverlay(message) {
+        if (typeof uiHandlers.setOverlay === "function") {
+            uiHandlers.setOverlay(message);
+            return;
+        }
+
+        // Fallback: still notify via toast so UI is not silent.
+        toast("info", message);
+    }
+
+    function clearOverlay() {
+        if (typeof uiHandlers.clearOverlay === "function") {
+            uiHandlers.clearOverlay();
+        }
+    }
+
+    function waitForPaint() {
+        return new Promise((resolve) => {
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    setTimeout(resolve, 40);
+                });
+            });
+        });
+    }
+
+    async function showOverlay(message) {
+        setOverlay(message);
+        await waitForPaint();
+    }
+
+    async function holdOverlay(ms = 450) {
+        await new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function openModal() {
+        refreshPrinterList();
+
+        if (typeof uiHandlers.openModal === "function") {
+            uiHandlers.openModal();
+        }
+    }
+
+    function closeModal() {
+        if (typeof uiHandlers.closeModal === "function") {
+            uiHandlers.closeModal();
+        }
+    }
+
+    function refreshPrinterList() {
+        if (typeof uiHandlers.refreshPrinters === "function") {
+            uiHandlers.refreshPrinters(getSavedPrinters());
+        }
+    }
+
+    function assertBluetoothAvailable() {
+        if (!navigator.bluetooth) {
+            toast("error", "Bluetooth unavailable.", "Browser tidak mendukung Web Bluetooth.");
+            const error = new Error("Browser tidak mendukung Web Bluetooth.");
+            error.name = "BluetoothUnavailable";
+            throw error;
+        }
+    }
+
+    /* ---------------------------------
+     * Storage
+     * --------------------------------- */
+
+    function readStorage() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+
+            if (!raw) {
+                return { printers: [], lastPrinterId: null };
+            }
+
+            const parsed = JSON.parse(raw);
+
+            return {
+                printers: Array.isArray(parsed.printers) ? parsed.printers : [],
+                lastPrinterId: parsed.lastPrinterId || null,
+            };
+        } catch {
+            return { printers: [], lastPrinterId: null };
+        }
+    }
+
+    function writeStorage(data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        refreshPrinterList();
+    }
+
+    function getSavedPrinters() {
+        const data = readStorage();
+        const connectedId = isConnected() ? cachedPrinterMeta?.id : null;
+
+        return data.printers
+            .slice()
+            .sort((a, b) => {
+                if (a.id === data.lastPrinterId) {
+                    return -1;
+                }
+
+                if (b.id === data.lastPrinterId) {
+                    return 1;
+                }
+
+                return String(b.lastUsedAt || "").localeCompare(
+                    String(a.lastUsedAt || ""),
+                );
+            })
+            .map((printer) => ({
+                ...printer,
+                isConnected: connectedId === printer.id,
+                isLastUsed: data.lastPrinterId === printer.id,
+            }));
+    }
+
+    function getLastPrinter() {
+        const data = readStorage();
+
+        if (!data.printers.length) {
+            return null;
+        }
+
+        if (data.lastPrinterId) {
+            const last = data.printers.find(
+                (printer) => printer.id === data.lastPrinterId,
+            );
+
+            if (last) {
+                return last;
+            }
+        }
+
+        return data.printers[0];
+    }
+
+    function savePrinter(printer) {
+        const data = readStorage();
+        const index = data.printers.findIndex(
+            (item) =>
+                item.id === printer.id || item.deviceId === printer.deviceId,
+        );
+
+        const record = {
+            id:
+                printer.id ||
+                (typeof crypto !== "undefined" && crypto.randomUUID
+                    ? crypto.randomUUID()
+                    : `printer-${Date.now()}`),
+            name: printer.name || "Bluetooth Printer",
+            deviceId: printer.deviceId,
+            serviceUuid: printer.serviceUuid || null,
+            characteristicUuid: printer.characteristicUuid || null,
+            lastUsedAt: new Date().toISOString(),
+        };
+
+        if (index >= 0) {
+            data.printers[index] = {
+                ...data.printers[index],
+                ...record,
+                id: data.printers[index].id,
+            };
+            data.lastPrinterId = data.printers[index].id;
+            cachedPrinterMeta = data.printers[index];
+        } else {
+            data.printers.push(record);
+            data.lastPrinterId = record.id;
+            cachedPrinterMeta = record;
+        }
+
+        writeStorage(data);
+
+        return cachedPrinterMeta;
+    }
+
+    function touchPrinter(printerId) {
+        const data = readStorage();
+        const index = data.printers.findIndex((item) => item.id === printerId);
+
+        if (index < 0) {
+            return;
+        }
+
+        data.printers[index].lastUsedAt = new Date().toISOString();
+        data.lastPrinterId = printerId;
+        writeStorage(data);
+        cachedPrinterMeta = data.printers[index];
+    }
+
+    function removePrinter(printerId) {
+        const data = readStorage();
+        const removed = data.printers.find((item) => item.id === printerId);
+
+        data.printers = data.printers.filter((item) => item.id !== printerId);
+
+        if (data.lastPrinterId === printerId) {
+            data.lastPrinterId = data.printers[0]?.id || null;
+        }
+
+        writeStorage(data);
+
+        if (
+            cachedPrinterMeta?.id === printerId ||
+            (removed && cachedDevice?.id === removed.deviceId)
+        ) {
+            disconnectPrinter({ silent: true });
+        }
+
+        toast("info", "Printer removed.", removed?.name || "");
+    }
+
+    /* ---------------------------------
+     * Bluetooth core
+     * --------------------------------- */
+
+    function isConnected() {
+        return Boolean(cachedDevice?.gatt?.connected && cachedCharacteristic);
+    }
+
+    function getConnectionState() {
+        return {
+            connected: isConnected(),
+            printer: cachedPrinterMeta,
+            deviceName: cachedDevice?.name || cachedPrinterMeta?.name || null,
+        };
+    }
+
+    async function findWritableCharacteristic(server, preferred = {}) {
+        if (preferred.serviceUuid && preferred.characteristicUuid) {
+            try {
+                const service = await server.getPrimaryService(
+                    preferred.serviceUuid,
+                );
+                const characteristic = await service.getCharacteristic(
+                    preferred.characteristicUuid,
+                );
+
+                if (
+                    characteristic.properties.write ||
+                    characteristic.properties.writeWithoutResponse
+                ) {
+                    return {
+                        characteristic,
+                        serviceUuid: preferred.serviceUuid,
+                        characteristicUuid: preferred.characteristicUuid,
+                    };
+                }
+            } catch {
+                // Fall through to discovery.
+            }
+        }
+
         for (const serviceUuid of OPTIONAL_SERVICES) {
             let service;
 
@@ -357,11 +646,16 @@ window.onload = function () {
                 try {
                     const characteristic =
                         await service.getCharacteristic(charUuid);
+
                     if (
                         characteristic.properties.write ||
                         characteristic.properties.writeWithoutResponse
                     ) {
-                        return characteristic;
+                        return {
+                            characteristic,
+                            serviceUuid,
+                            characteristicUuid: charUuid,
+                        };
                     }
                 } catch {
                     // Try next characteristic.
@@ -376,11 +670,16 @@ window.onload = function () {
             );
 
             if (writable) {
-                return writable;
+                return {
+                    characteristic: writable,
+                    serviceUuid,
+                    characteristicUuid: writable.uuid,
+                };
             }
         }
 
         const services = await server.getPrimaryServices();
+
         for (const service of services) {
             const characteristics = await service.getCharacteristics();
             const writable = characteristics.find(
@@ -390,37 +689,181 @@ window.onload = function () {
             );
 
             if (writable) {
-                return writable;
+                return {
+                    characteristic: writable,
+                    serviceUuid: service.uuid,
+                    characteristicUuid: writable.uuid,
+                };
             }
         }
 
         throw new Error("Karakteristik printer tidak ditemukan.");
     }
 
-    async function connect() {
-        if (cachedDevice?.gatt?.connected && cachedCharacteristic) {
-            return cachedCharacteristic;
+    function bindDeviceDisconnect(device) {
+        if (disconnectBoundDevices.has(device)) {
+            return;
         }
 
-        if (!navigator.bluetooth) {
-            throw new Error("Browser tidak mendukung Web Bluetooth.");
+        disconnectBoundDevices.add(device);
+
+        device.addEventListener("gattserverdisconnected", () => {
+            cachedCharacteristic = null;
+
+            if (cachedPrinterMeta) {
+                refreshPrinterList();
+            }
+        });
+    }
+
+    async function connectToDevice(device, savedPrinter = null) {
+        cachedDevice = device;
+        bindDeviceDisconnect(device);
+
+        const server = device.gatt.connected
+            ? device.gatt
+            : await device.gatt.connect();
+
+        const found = await findWritableCharacteristic(server, {
+            serviceUuid: savedPrinter?.serviceUuid,
+            characteristicUuid: savedPrinter?.characteristicUuid,
+        });
+
+        cachedCharacteristic = found.characteristic;
+
+        const meta = savePrinter({
+            id: savedPrinter?.id,
+            name: device.name || savedPrinter?.name || "Bluetooth Printer",
+            deviceId: device.id,
+            serviceUuid: found.serviceUuid,
+            characteristicUuid: found.characteristicUuid,
+        });
+
+        return {
+            characteristic: cachedCharacteristic,
+            printer: meta,
+        };
+    }
+
+    async function findGrantedDevice(deviceId) {
+        if (!navigator.bluetooth?.getDevices) {
+            return null;
         }
+
+        const devices = await navigator.bluetooth.getDevices();
+
+        return devices.find((device) => device.id === deviceId) || null;
+    }
+
+    async function pairPrinter() {
+        assertBluetoothAvailable();
 
         const device = await navigator.bluetooth.requestDevice({
             acceptAllDevices: true,
             optionalServices: OPTIONAL_SERVICES,
         });
 
-        cachedDevice = device;
+        await showOverlay("Connecting to printer...");
 
-        device.addEventListener("gattserverdisconnected", () => {
-            cachedCharacteristic = null;
-        });
+        try {
+            const result = await connectToDevice(device);
+            await holdOverlay(350);
+            toast("success", "Printer connected.", result.printer.name);
+            return result.printer;
+        } finally {
+            clearOverlay();
+        }
+    }
 
-        const server = await device.gatt.connect();
-        cachedCharacteristic = await findWritableCharacteristic(server);
+    async function reconnectPrinter(savedPrinter = null) {
+        assertBluetoothAvailable();
 
-        return cachedCharacteristic;
+        const printer = savedPrinter || getLastPrinter();
+
+        if (!printer?.deviceId) {
+            const error = new Error("Printer not found.");
+            error.name = "PrinterNotFound";
+            throw error;
+        }
+
+        if (
+            cachedDevice?.id === printer.deviceId &&
+            cachedDevice?.gatt?.connected &&
+            cachedCharacteristic
+        ) {
+            touchPrinter(printer.id);
+            cachedPrinterMeta = printer;
+            return printer;
+        }
+
+        let device = null;
+
+        if (cachedDevice?.id === printer.deviceId) {
+            device = cachedDevice;
+        } else {
+            device = await findGrantedDevice(printer.deviceId);
+        }
+
+        if (!device) {
+            const error = new Error("Printer not found.");
+            error.name = "PrinterNotFound";
+            throw error;
+        }
+
+        const result = await connectToDevice(device, printer);
+        return result.printer;
+    }
+
+    async function connectPrinter(printerId = null) {
+        assertBluetoothAvailable();
+
+        const printers = readStorage().printers;
+        const printer = printerId
+            ? printers.find((item) => item.id === printerId)
+            : getLastPrinter();
+
+        if (!printer) {
+            const error = new Error("Printer not found.");
+            error.name = "PrinterNotFound";
+            throw error;
+        }
+
+        await showOverlay("Connecting to printer...");
+
+        try {
+            const connected = await reconnectPrinter(printer);
+            await holdOverlay(350);
+            toast("success", "Printer connected.", connected.name);
+            return connected;
+        } catch (error) {
+            toast(
+                "error",
+                "Connection failed.",
+                error?.message || "Tidak dapat terhubung ke printer.",
+            );
+            throw error;
+        } finally {
+            clearOverlay();
+        }
+    }
+
+    async function disconnectPrinter({ silent = false } = {}) {
+        try {
+            if (cachedDevice?.gatt?.connected) {
+                cachedDevice.gatt.disconnect();
+            }
+        } catch {
+            // Ignore disconnect errors.
+        }
+
+        cachedCharacteristic = null;
+        cachedDevice = null;
+        cachedPrinterMeta = null;
+        refreshPrinterList();
+
+        if (!silent) {
+            toast("info", "Printer disconnected.");
+        }
     }
 
     async function writeData(characteristic, data) {
@@ -437,8 +880,25 @@ window.onload = function () {
         }
     }
 
-    async function print(data) {
-        const characteristic = await connect();
+    async function ensureCharacteristic() {
+        if (isConnected()) {
+            return cachedCharacteristic;
+        }
+
+        const lastPrinter = getLastPrinter();
+
+        if (lastPrinter) {
+            await reconnectPrinter(lastPrinter);
+            return cachedCharacteristic;
+        }
+
+        throw Object.assign(new Error("Printer not found."), {
+            name: "PrinterNotFound",
+        });
+    }
+
+    async function sendPrintData(data) {
+        const characteristic = await ensureCharacteristic();
         await writeData(characteristic, data);
     }
 
@@ -447,7 +907,17 @@ window.onload = function () {
             transaction,
             formatAmount || formatRupiah,
         );
-        await print(data);
+
+        toast("info", "Printing...");
+        await showOverlay("Printing...");
+
+        try {
+            await sendPrintData(data);
+            await holdOverlay(350);
+            toast("success", "Print completed.");
+        } finally {
+            clearOverlay();
+        }
     }
 
     function openPrintPage(transaction, formatAmount) {
@@ -464,30 +934,222 @@ window.onload = function () {
         printWindow.document.close();
     }
 
-    async function printTransactionWithFallback(transaction, formatAmount) {
-        if (navigator.bluetooth) {
-            try {
-                await printTransaction(transaction, formatAmount);
-                return;
-            } catch (error) {
-                if (
-                    error?.name === "NotFoundError" ||
-                    error?.name === "SecurityError"
-                ) {
-                    throw error;
-                }
-
-                console.warn(
-                    "Bluetooth print failed, falling back to print page.",
-                    error,
-                );
-            }
+    function clearPendingPrint(error = null) {
+        if (!pendingPrint) {
+            return;
         }
 
-        openPrintPage(transaction, formatAmount);
+        const pending = pendingPrint;
+        pendingPrint = null;
+
+        if (error) {
+            pending.reject(error);
+        } else {
+            pending.resolve();
+        }
+    }
+
+    function beginPendingPrint(transaction, formatAmount) {
+        return new Promise((resolve, reject) => {
+            pendingPrint = {
+                transaction,
+                formatAmount: formatAmount || formatRupiah,
+                resolve,
+                reject,
+            };
+
+            openModal();
+        });
+    }
+
+    async function printPendingIfAny() {
+        if (!pendingPrint) {
+            return;
+        }
+
+        const { transaction, formatAmount } = pendingPrint;
+
+        closeModal();
+
+        try {
+            await printTransaction(transaction, formatAmount);
+            clearPendingPrint();
+        } catch (error) {
+            clearPendingPrint(error);
+            throw error;
+        }
+    }
+
+    async function pairAndPrint() {
+        try {
+            await pairPrinter();
+            await printPendingIfAny();
+        } catch (error) {
+            clearOverlay();
+
+            if (
+                error?.name === "NotFoundError" ||
+                error?.name === "SecurityError"
+            ) {
+                toast("info", "Pairing dibatalkan.");
+                return;
+            }
+
+            toast(
+                "error",
+                "Connection failed.",
+                error?.message || "Gagal memasangkan printer.",
+            );
+            throw error;
+        }
+    }
+
+    async function connectSavedAndPrint(printerId) {
+        try {
+            await connectPrinter(printerId);
+            await printPendingIfAny();
+        } catch (error) {
+            if (error?.name === "PrinterNotFound") {
+                toast("error", "Printer not found.");
+            }
+
+            // Keep modal open so user can pair again.
+            throw error;
+        }
+    }
+
+    async function cancelPrinterModal() {
+        closeModal();
+        clearOverlay();
+
+        const error = new Error("Print dibatalkan.");
+        error.name = "PrintCancelled";
+        clearPendingPrint(error);
+    }
+
+    async function printFromModal() {
+        const lastPrinter = getLastPrinter();
+
+        if (!lastPrinter && !isConnected()) {
+            toast("info", "Pilih atau pasangkan printer terlebih dahulu.");
+            return;
+        }
+
+        try {
+            if (!isConnected()) {
+                await connectPrinter(lastPrinter.id);
+            }
+
+            await printPendingIfAny();
+        } catch (error) {
+            if (error?.name === "PrintCancelled") {
+                return;
+            }
+
+            toast(
+                "error",
+                "Connection failed.",
+                error?.message || "Gagal mencetak.",
+            );
+        }
+    }
+
+    async function printTransactionWithFallback(transaction, formatAmount) {
+        if (!navigator.bluetooth) {
+            toast(
+                "warning",
+                "Bluetooth unavailable.",
+                "Mencetak lewat dialog browser.",
+            );
+            openPrintPage(transaction, formatAmount);
+            return;
+        }
+
+        try {
+            const lastPrinter = getLastPrinter();
+
+            // Already connected or previously paired: always show spinner first.
+            if (isConnected() || lastPrinter) {
+                await showOverlay(
+                    isConnected()
+                        ? "Printing..."
+                        : "Connecting to printer...",
+                );
+            }
+
+            if (isConnected()) {
+                await printTransaction(transaction, formatAmount);
+                return;
+            }
+
+            if (lastPrinter) {
+                try {
+                    await reconnectPrinter(lastPrinter);
+                    await holdOverlay(350);
+                    toast("success", "Printer connected.", lastPrinter.name);
+                    await showOverlay("Printing...");
+                    await printTransaction(transaction, formatAmount);
+                    return;
+                } catch (error) {
+                    clearOverlay();
+                    console.warn(
+                        "Auto-reconnect failed, opening printer modal.",
+                        error,
+                    );
+                    toast(
+                        "warning",
+                        "Connection failed.",
+                        "Silakan pilih atau pasangkan printer.",
+                    );
+                }
+            }
+
+            await beginPendingPrint(transaction, formatAmount);
+        } catch (error) {
+            clearOverlay();
+
+            if (error?.name === "PrintCancelled") {
+                return;
+            }
+
+            if (
+                error?.name === "NotFoundError" ||
+                error?.name === "SecurityError" ||
+                error?.name === "BluetoothUnavailable"
+            ) {
+                throw error;
+            }
+
+            console.warn(
+                "Bluetooth print failed, falling back to print page.",
+                error,
+            );
+
+            openPrintPage(transaction, formatAmount);
+        }
     }
 
     return {
+        // UI bridge
+        registerUi,
+        getSavedPrinters,
+        getConnectionState,
+        getLastPrinter,
+
+        // Printer manager
+        pairPrinter,
+        reconnectPrinter,
+        connectPrinter,
+        disconnectPrinter,
+        removePrinter,
+
+        // Modal actions used by Alpine
+        pairAndPrint,
+        connectSavedAndPrint,
+        cancelPrinterModal,
+        printFromModal,
+
+        // Print API (backward compatible)
         printTransaction,
         printTransactionWithFallback,
         openPrintPage,

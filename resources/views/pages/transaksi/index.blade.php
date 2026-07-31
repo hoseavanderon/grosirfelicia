@@ -441,6 +441,91 @@
             </div>
         </x-ui.modal>
 
+        <template x-teleport="body">
+            <div x-show="printerModalOpen" x-cloak class="printer-modal-backdrop"
+                @keydown.escape.window="printerModalOpen && printerModalCancel()">
+                <div class="printer-modal" @click.stop>
+                    <div class="printer-modal-header">
+                        <div>
+                            <h3 class="printer-modal-title">Bluetooth Printer</h3>
+                            <p class="printer-modal-subtitle">Kelola koneksi printer thermal</p>
+                        </div>
+                        <button type="button" class="printer-modal-close" @click="printerModalCancel()"
+                            aria-label="Tutup">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="printer-modal-body">
+                        <div class="printer-section-label">Previously Used Printers</div>
+
+                        <div x-show="savedPrinters.length === 0" class="printer-empty">
+                            Belum ada printer tersimpan. Pair printer baru untuk mulai mencetak.
+                        </div>
+
+                        <div class="printer-list" x-show="savedPrinters.length > 0">
+                            <template x-for="printer in savedPrinters" :key="printer.id">
+                                <div class="printer-item"
+                                    :class="selectedPrinterId === printer.id ? 'is-selected' : ''"
+                                    @click="selectedPrinterId = printer.id">
+                                    <div class="printer-item-main">
+                                        <div class="printer-item-name" x-text="printer.name"></div>
+                                        <div class="printer-item-meta">
+                                            <span
+                                                x-text="printer.isConnected ? 'Connected' : (printer.isLastUsed ? 'Last Used' : 'Saved')"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="printer-item-actions">
+                                        <button type="button" class="printer-mini-btn printer-mini-btn-primary"
+                                            :disabled="printerBusy"
+                                            @click.stop="printerConnect(printer.id)">
+                                            Connect
+                                        </button>
+                                        <button type="button" class="printer-mini-btn"
+                                            :disabled="printerBusy"
+                                            @click.stop="printerRemove(printer.id)">
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+
+                        <button type="button" class="printer-pair-btn" :disabled="printerBusy"
+                            @click="printerPairNew()">
+                            <span class="printer-pair-plus">+</span>
+                            <span>Pair New Printer</span>
+                        </button>
+                    </div>
+
+                    <div class="printer-modal-footer">
+                        <button type="button" class="printer-footer-btn printer-footer-cancel"
+                            :disabled="printerBusy" @click="printerModalCancel()">
+                            Cancel
+                        </button>
+                        <button type="button" class="printer-footer-btn printer-footer-print"
+                            :disabled="printerBusy || (!selectedPrinterId && savedPrinters.length === 0)"
+                            @click="printerModalPrint()">
+                            Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template x-teleport="body">
+            <div x-show="printerOverlay" x-cloak class="printer-overlay">
+                <div class="printer-overlay-card">
+                    <div class="printer-spinner" aria-hidden="true"></div>
+                    <div class="printer-overlay-text" x-text="printerOverlay"></div>
+                </div>
+            </div>
+        </template>
+
     </div>
 
 @endsection

@@ -20,6 +20,12 @@ function transaksiPage() {
         confirmMessage: "",
         confirmAction: null,
 
+        printerModalOpen: false,
+        printerOverlay: null,
+        savedPrinters: [],
+        selectedPrinterId: null,
+        printerBusy: false,
+
         editMode: false,
         editForm: null,
         productOptions: [],
@@ -43,6 +49,123 @@ function transaksiPage() {
 
         init() {
             this.fetchTransactions();
+            this.bindPrinterUi();
+        },
+
+        bindPrinterUi() {
+            if (typeof ThermalPrinter === "undefined") {
+                return;
+            }
+
+            ThermalPrinter.registerUi({
+                openModal: () => {
+                    this.savedPrinters = ThermalPrinter.getSavedPrinters();
+                    this.selectedPrinterId =
+                        ThermalPrinter.getLastPrinter()?.id || null;
+                    this.printerModalOpen = true;
+                },
+                closeModal: () => {
+                    this.printerModalOpen = false;
+                    this.printerBusy = false;
+                },
+                setOverlay: (message) => {
+                    this.printerOverlay = message;
+                },
+                clearOverlay: () => {
+                    this.printerOverlay = null;
+                },
+                refreshPrinters: (printers) => {
+                    this.savedPrinters =
+                        printers || ThermalPrinter.getSavedPrinters();
+
+                    if (
+                        this.selectedPrinterId &&
+                        !this.savedPrinters.some(
+                            (printer) => printer.id === this.selectedPrinterId,
+                        )
+                    ) {
+                        this.selectedPrinterId =
+                            ThermalPrinter.getLastPrinter()?.id || null;
+                    }
+                },
+            });
+
+            this.savedPrinters = ThermalPrinter.getSavedPrinters();
+            this.selectedPrinterId =
+                ThermalPrinter.getLastPrinter()?.id || null;
+        },
+
+        async printerConnect(printerId) {
+            if (this.printerBusy) {
+                return;
+            }
+
+            this.printerBusy = true;
+            this.selectedPrinterId = printerId;
+
+            try {
+                await ThermalPrinter.connectSavedAndPrint(printerId);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                this.printerBusy = false;
+                this.savedPrinters = ThermalPrinter.getSavedPrinters();
+            }
+        },
+
+        printerRemove(printerId) {
+            ThermalPrinter.removePrinter(printerId);
+            this.savedPrinters = ThermalPrinter.getSavedPrinters();
+
+            if (this.selectedPrinterId === printerId) {
+                this.selectedPrinterId =
+                    ThermalPrinter.getLastPrinter()?.id || null;
+            }
+        },
+
+        async printerPairNew() {
+            if (this.printerBusy) {
+                return;
+            }
+
+            this.printerBusy = true;
+
+            try {
+                await ThermalPrinter.pairAndPrint();
+            } catch (error) {
+                console.error(error);
+            } finally {
+                this.printerBusy = false;
+                this.savedPrinters = ThermalPrinter.getSavedPrinters();
+            }
+        },
+
+        async printerModalPrint() {
+            if (this.printerBusy) {
+                return;
+            }
+
+            this.printerBusy = true;
+
+            try {
+                if (this.selectedPrinterId) {
+                    await ThermalPrinter.connectSavedAndPrint(
+                        this.selectedPrinterId,
+                    );
+                } else {
+                    await ThermalPrinter.printFromModal();
+                }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                this.printerBusy = false;
+                this.savedPrinters = ThermalPrinter.getSavedPrinters();
+            }
+        },
+
+        async printerModalCancel() {
+            await ThermalPrinter.cancelPrinterModal();
+            this.printerBusy = false;
         },
 
         get isUnsettledMode() {
@@ -770,8 +893,20 @@ function transaksiPage() {
         },
 
         async printReceipt() {
-            if (!this.selectedTransaction) {
+            if (!this.selectedTransaction || this.printerOverlay) {
                 return;
+            }
+
+            // Instant feedback when a paired printer exists.
+            if (
+                typeof ThermalPrinter !== "undefined" &&
+                (ThermalPrinter.getConnectionState()?.connected ||
+                    ThermalPrinter.getLastPrinter())
+            ) {
+                this.printerOverlay = ThermalPrinter.getConnectionState()
+                    ?.connected
+                    ? "Printing..."
+                    : "Connecting to printer...";
             }
 
             try {
@@ -781,7 +916,18 @@ function transaksiPage() {
                 );
             } catch (error) {
                 console.error(error);
-                alert(error?.message || "Gagal mencetak struk.");
+
+                if (error?.name === "PrintCancelled") {
+                    return;
+                }
+
+                this.showToast(
+                    "error",
+                    "Gagal",
+                    error?.message || "Gagal mencetak struk.",
+                );
+            } finally {
+                this.printerOverlay = null;
             }
         },
 
