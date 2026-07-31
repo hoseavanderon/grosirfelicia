@@ -211,8 +211,8 @@ class JejakProdukService
     private function movementLabel(string $movementType): string
     {
         return match ($movementType) {
-            JejakProduk::TYPE_KELUAR => 'STOCK OUT',
-            JejakProduk::TYPE_MASUK => 'STOCK IN',
+            JejakProduk::TYPE_KELUAR => 'STOK KELUAR',
+            JejakProduk::TYPE_MASUK => 'STOK MASUK',
             JejakProduk::TYPE_BATAL => 'CANCEL',
             default => strtoupper($movementType),
         };
