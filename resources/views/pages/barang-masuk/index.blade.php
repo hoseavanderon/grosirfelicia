@@ -8,8 +8,7 @@
 
 @section('content')
 
-    <div x-data="incomingGoodsForm(@js($draft))" lang="id-ID" class="barang-masuk-page space-y-6"
-        @click.outside="closeProductDropdown()">
+    <div x-data="incomingGoodsForm(@js($draft))" lang="id-ID" class="barang-masuk-page space-y-6">
 
         <div class="barang-masuk-header">
             <h1 class="barang-masuk-title theme-text">Barang Masuk</h1>
@@ -44,7 +43,7 @@
                         <template x-for="row in rows" :key="row.uid">
                             <tr :class="rowIsInvalid(row.uid) ? 'is-invalid' : ''">
                                 <td>
-                                    <div class="product-select-wrap" @click.stop>
+                                    <div class="product-select-wrap" data-product-select @click.stop>
                                         <template x-if="productsLoading">
                                             <div class="barang-masuk-products-loading">
                                                 <span class="barang-masuk-spinner"></span>
@@ -53,41 +52,18 @@
                                         </template>
 
                                         <template x-if="!productsLoading">
-                                            <div>
-                                                <button type="button" @click="toggleProductDropdown(row.uid)"
-                                                    class="product-select-trigger"
-                                                    :class="rowIsInvalid(row.uid) && !row.product_id ? 'is-invalid' : ''">
-                                                    <span x-text="productLabel(row)"></span>
-                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0"
-                                                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                                                        stroke-width="2">
-                                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                                            d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                                    </svg>
-                                                </button>
-
-                                                <div x-show="openProductUid === row.uid" x-transition x-cloak
-                                                    class="product-select-menu">
-                                                    <input type="text" x-ref="productSearchInput" x-model="productQuery"
-                                                        class="product-select-search" placeholder="Cari produk...">
-
-                                                    <div class="product-select-options">
-                                                        <template x-for="product in filteredProducts()"
-                                                            :key="product.id">
-                                                            <button type="button" class="product-select-option"
-                                                                :class="row.product_id === product.id ? 'is-active' : ''"
-                                                                @click="selectProduct(row, product)"
-                                                                x-text="product.name">
-                                                            </button>
-                                                        </template>
-
-                                                        <div x-show="filteredProducts().length === 0"
-                                                            class="product-select-empty">
-                                                            Produk tidak ditemukan.
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                            <button type="button"
+                                                @click="toggleProductDropdown(row.uid, $event)"
+                                                class="product-select-trigger"
+                                                :class="rowIsInvalid(row.uid) && !row.product_id ? 'is-invalid' : ''">
+                                                <span x-text="productLabel(row)"></span>
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                                    stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                                </svg>
+                                            </button>
                                         </template>
                                     </div>
                                 </td>
@@ -120,11 +96,7 @@
 
             <div class="barang-masuk-cards">
                 <template x-for="row in rows" :key="row.uid">
-                    <div class="barang-masuk-card"
-                        :class="{
-                            'is-invalid': rowIsInvalid(row.uid),
-                            'is-dropdown-open': openProductUid === row.uid,
-                        }">
+                    <div class="barang-masuk-card" :class="rowIsInvalid(row.uid) ? 'is-invalid' : ''">
                         <div class="barang-masuk-card-header">
                             <button type="button" @click="removeRow(row.uid)" class="barang-masuk-delete-btn"
                                 aria-label="Hapus baris">
@@ -137,7 +109,7 @@
                         </div>
 
                         <label class="barang-masuk-card-label">Produk</label>
-                        <div class="product-select-wrap" @click.stop>
+                        <div class="product-select-wrap" data-product-select @click.stop>
                             <template x-if="productsLoading">
                                 <div class="barang-masuk-products-loading">
                                     <span class="barang-masuk-spinner"></span>
@@ -146,37 +118,16 @@
                             </template>
 
                             <template x-if="!productsLoading">
-                                <div>
-                                    <button type="button" @click="toggleProductDropdown(row.uid)"
-                                        class="product-select-trigger"
-                                        :class="rowIsInvalid(row.uid) && !row.product_id ? 'is-invalid' : ''">
-                                        <span x-text="productLabel(row)"></span>
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round"
-                                                d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-                                        </svg>
-                                    </button>
-
-                                    <div x-show="openProductUid === row.uid" x-transition x-cloak
-                                        class="product-select-menu">
-                                        <input type="text" x-ref="productSearchInput" x-model="productQuery"
-                                            class="product-select-search" placeholder="Cari produk...">
-
-                                        <div class="product-select-options">
-                                            <template x-for="product in filteredProducts()" :key="product.id">
-                                                <button type="button" class="product-select-option"
-                                                    :class="row.product_id === product.id ? 'is-active' : ''"
-                                                    @click="selectProduct(row, product)" x-text="product.name">
-                                                </button>
-                                            </template>
-
-                                            <div x-show="filteredProducts().length === 0" class="product-select-empty">
-                                                Produk tidak ditemukan.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <button type="button" @click="toggleProductDropdown(row.uid, $event)"
+                                    class="product-select-trigger"
+                                    :class="rowIsInvalid(row.uid) && !row.product_id ? 'is-invalid' : ''">
+                                    <span x-text="productLabel(row)"></span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                            d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </button>
                             </template>
                         </div>
 
@@ -207,6 +158,27 @@
                 </button>
             </div>
         </div>
+
+        <template x-teleport="body">
+            <div x-show="openProductUid" x-cloak x-transition data-product-select class="product-select-menu is-fixed"
+                :style="productMenuStyle" @click.stop>
+                <input type="text" x-ref="productSearchInput" x-model="productQuery" class="product-select-search"
+                    placeholder="Cari produk...">
+
+                <div class="product-select-options">
+                    <template x-for="product in filteredProducts()" :key="product.id">
+                        <button type="button" class="product-select-option"
+                            :class="openProductRow()?.product_id === product.id ? 'is-active' : ''"
+                            @click="selectProduct(openProductRow(), product)" x-text="product.name">
+                        </button>
+                    </template>
+
+                    <div x-show="filteredProducts().length === 0" class="product-select-empty">
+                        Produk tidak ditemukan.
+                    </div>
+                </div>
+            </div>
+        </template>
 
         <x-ui.modal show="submitConfirmOpen" maxWidth="md">
             <div class="confirm-dialog-body">

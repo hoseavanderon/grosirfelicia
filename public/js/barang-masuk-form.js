@@ -16,6 +16,10 @@ function incomingGoodsForm(initialDraft = []) {
         popStateHandler: null,
         openProductUid: null,
         productQuery: "",
+        productMenuTrigger: null,
+        productMenuStyle: "",
+        productMenuDocClickHandler: null,
+        productMenuRepositionHandler: null,
 
         init() {
             this.rows = this.normalizeDraft(initialDraft);
@@ -27,6 +31,37 @@ function incomingGoodsForm(initialDraft = []) {
             this.loadProducts();
             this.bindNavigationGuard();
             this.pushHistoryState();
+            this.bindProductMenuListeners();
+        },
+
+        bindProductMenuListeners() {
+            this.productMenuDocClickHandler = (event) => {
+                if (!this.openProductUid) {
+                    return;
+                }
+
+                if (event.target.closest("[data-product-select]")) {
+                    return;
+                }
+
+                this.closeProductDropdown();
+            };
+
+            this.productMenuRepositionHandler = () => {
+                if (this.openProductUid) {
+                    this.updateProductMenuPosition();
+                }
+            };
+
+            document.addEventListener("click", this.productMenuDocClickHandler);
+            window.addEventListener("resize", this.productMenuRepositionHandler);
+            window.addEventListener("scroll", this.productMenuRepositionHandler, true);
+
+            this.$el.addEventListener("alpine:destroy", () => {
+                document.removeEventListener("click", this.productMenuDocClickHandler);
+                window.removeEventListener("resize", this.productMenuRepositionHandler);
+                window.removeEventListener("scroll", this.productMenuRepositionHandler, true);
+            });
         },
 
         normalizeDraft(draft) {
@@ -66,7 +101,7 @@ function incomingGoodsForm(initialDraft = []) {
             }
 
             if (this.openProductUid === uid) {
-                this.openProductUid = null;
+                this.closeProductDropdown();
             }
 
             this.invalidRowIds = this.invalidRowIds.filter((id) => id !== uid);
@@ -110,24 +145,50 @@ function incomingGoodsForm(initialDraft = []) {
             );
         },
 
-        toggleProductDropdown(uid) {
+        toggleProductDropdown(uid, event) {
             if (this.productsLoading) {
                 return;
             }
 
-            this.openProductUid = this.openProductUid === uid ? null : uid;
-            this.productQuery = "";
-
-            if (this.openProductUid) {
-                this.$nextTick(() => {
-                    this.$refs.productSearchInput?.focus();
-                });
+            if (this.openProductUid === uid) {
+                this.closeProductDropdown();
+                return;
             }
+
+            this.openProductUid = uid;
+            this.productQuery = "";
+            this.productMenuTrigger = event?.currentTarget || null;
+            this.updateProductMenuPosition();
+
+            this.$nextTick(() => {
+                this.$refs.productSearchInput?.focus();
+            });
+        },
+
+        updateProductMenuPosition() {
+            if (!this.productMenuTrigger) {
+                this.productMenuStyle = "";
+                return;
+            }
+
+            const rect = this.productMenuTrigger.getBoundingClientRect();
+
+            this.productMenuStyle = [
+                `top:${Math.round(rect.bottom + 6)}px`,
+                `left:${Math.round(rect.left)}px`,
+                `width:${Math.round(rect.width)}px`,
+            ].join(";");
         },
 
         closeProductDropdown() {
             this.openProductUid = null;
             this.productQuery = "";
+            this.productMenuTrigger = null;
+            this.productMenuStyle = "";
+        },
+
+        openProductRow() {
+            return this.rows.find((row) => row.uid === this.openProductUid) || null;
         },
 
         productLabel(row) {
@@ -135,6 +196,10 @@ function incomingGoodsForm(initialDraft = []) {
         },
 
         selectProduct(row, product) {
+            if (!row || !product) {
+                return;
+            }
+
             row.product_id = product.id;
             row.product_name = product.name;
             this.closeProductDropdown();
@@ -232,8 +297,7 @@ function incomingGoodsForm(initialDraft = []) {
         async markSubmissionComplete() {
             this.rows = [this.createRow()];
             this.invalidRowIds = [];
-            this.openProductUid = null;
-            this.productQuery = "";
+            this.closeProductDropdown();
             await this.discardDraft();
             this.disableNavigationGuard();
         },
