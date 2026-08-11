@@ -7,7 +7,7 @@
         </div>
 
         <div class="brand-text">
-            Grosir Felicia
+            Grosir Felicias
         </div>
 
     </div>
