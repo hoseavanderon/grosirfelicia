@@ -287,6 +287,9 @@
     top: 0;
     left: 0;
     right: auto;
+    width: auto;
+    min-width: 12rem;
+    max-width: min(36rem, calc(100vw - 1.5rem));
     z-index: 2000;
 }
 

@@ -160,7 +160,7 @@
         </div>
 
         <template x-teleport="body">
-            <div x-show="openProductUid" x-cloak x-transition data-product-select class="product-select-menu is-fixed"
+            <div x-show="openProductUid" x-cloak data-product-select class="product-select-menu is-fixed"
                 :style="productMenuStyle" @click.stop>
                 <input type="text" x-ref="productSearchInput" x-model="productQuery" class="product-select-search"
                     placeholder="Cari produk...">

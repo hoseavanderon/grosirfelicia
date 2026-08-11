@@ -184,7 +184,8 @@ function incomingGoodsForm(initialDraft = []) {
             this.openProductUid = null;
             this.productQuery = "";
             this.productMenuTrigger = null;
-            this.productMenuStyle = "";
+            // Keep productMenuStyle until the next open so leave transitions
+            // don't flash a full-width menu at top-left.
         },
 
         openProductRow() {
