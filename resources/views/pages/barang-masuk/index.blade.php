@@ -11,7 +11,7 @@
     <div x-data="incomingGoodsForm(@js($draft))" lang="id-ID" class="barang-masuk-page space-y-6">
 
         <div class="barang-masuk-header">
-            <h1 class="barang-masuk-title theme-text">Barang Masuk</h1>
+            <h1 class="barang-masuk-title theme-text">Barang Masuks</h1>
 
             <div class="barang-masuk-actions">
                 <button type="button" @click="addRow()" class="barang-masuk-btn">
@@ -52,8 +52,7 @@
                                         </template>
 
                                         <template x-if="!productsLoading">
-                                            <button type="button"
-                                                @click="toggleProductDropdown(row.uid, $event)"
+                                            <button type="button" @click="toggleProductDropdown(row.uid, $event)"
                                                 class="product-select-trigger"
                                                 :class="rowIsInvalid(row.uid) && !row.product_id ? 'is-invalid' : ''">
                                                 <span x-text="productLabel(row)"></span>
@@ -75,7 +74,8 @@
                                 <td>
                                     <input type="number" min="1" x-model="row.quantity" @input="onRowChange()"
                                         class="barang-masuk-field"
-                                        :class="rowIsInvalid(row.uid) && (!row.quantity || Number(row.quantity) <= 0) ? 'is-invalid' : ''"
+                                        :class="rowIsInvalid(row.uid) && (!row.quantity || Number(row.quantity) <= 0) ?
+                                            'is-invalid' : ''"
                                         placeholder="0">
                                 </td>
                                 <td>
@@ -142,7 +142,8 @@
                                 <label class="barang-masuk-card-label">Jumlah</label>
                                 <input type="number" min="1" x-model="row.quantity" @input="onRowChange()"
                                     class="barang-masuk-field"
-                                    :class="rowIsInvalid(row.uid) && (!row.quantity || Number(row.quantity) <= 0) ? 'is-invalid' : ''"
+                                    :class="rowIsInvalid(row.uid) && (!row.quantity || Number(row.quantity) <= 0) ?
+                                        'is-invalid' : ''"
                                     placeholder="0">
                             </div>
                         </div>
@@ -209,16 +210,14 @@
                 </h3>
 
                 <div class="confirm-dialog-actions">
-                    <button type="button" @click="cancelLeave()"
-                        class="confirm-dialog-btn confirm-dialog-cancel">
+                    <button type="button" @click="cancelLeave()" class="confirm-dialog-btn confirm-dialog-cancel">
                         Batal
                     </button>
                     <button type="button" @click="confirmLeaveDiscard()"
                         class="confirm-dialog-btn confirm-dialog-discard">
                         Buang
                     </button>
-                    <button type="button" @click="confirmLeaveSave()"
-                        class="confirm-dialog-btn confirm-dialog-confirm">
+                    <button type="button" @click="confirmLeaveSave()" class="confirm-dialog-btn confirm-dialog-confirm">
                         Simpan Draft
                     </button>
                 </div>
