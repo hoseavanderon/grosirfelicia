@@ -1249,10 +1249,7 @@ function transaksiPage() {
 
             item.product_name = option.name;
             item.expired_label = option.expired_label;
-
-            if (!item.unit_price || item.unit_price <= 0) {
-                item.unit_price = Number(option.price) || 0;
-            }
+            item.unit_price = Number(option.price) || 0;
 
             this.recalculateEditItem(item);
         },

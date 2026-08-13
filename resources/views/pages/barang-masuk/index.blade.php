@@ -11,7 +11,7 @@
     <div x-data="incomingGoodsForm(@js($draft))" lang="id-ID" class="barang-masuk-page space-y-6">
 
         <div class="barang-masuk-header">
-            <h1 class="barang-masuk-title theme-text">Barang Masuks</h1>
+            <h1 class="barang-masuk-title theme-text">Barang Masuk</h1>
 
             <div class="barang-masuk-actions">
                 <button type="button" @click="addRow()" class="barang-masuk-btn">
