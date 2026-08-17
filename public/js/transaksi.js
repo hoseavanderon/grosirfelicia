@@ -25,6 +25,14 @@ function transaksiPage() {
         savedPrinters: [],
         selectedPrinterId: null,
         printerBusy: false,
+        printerStatus: {
+            connected: false,
+            status: "idle",
+            printer: null,
+            deviceName: null,
+            canAutoReconnect: false,
+            hasSavedPrinter: false,
+        },
 
         printerNameModalOpen: false,
         printerNameDraft: "",
@@ -58,6 +66,45 @@ function transaksiPage() {
             this.bindPrinterUi();
         },
 
+        syncPrinterStatus(state = null) {
+            const next =
+                state ||
+                (typeof ThermalPrinter !== "undefined"
+                    ? ThermalPrinter.getConnectionState()
+                    : null);
+
+            if (!next) {
+                return;
+            }
+
+            this.printerStatus = {
+                connected: Boolean(next.connected),
+                status: next.status || "idle",
+                printer: next.printer || null,
+                deviceName: next.deviceName || null,
+                canAutoReconnect: Boolean(next.canAutoReconnect),
+                hasSavedPrinter: Boolean(next.hasSavedPrinter),
+            };
+        },
+
+        get printerStatusLabel() {
+            const name =
+                this.printerStatus.printer?.name ||
+                this.printerStatus.deviceName ||
+                "Printer";
+
+            switch (this.printerStatus.status) {
+                case "connected":
+                    return `${name} — Connected`;
+                case "connecting":
+                    return `${name} — Connecting...`;
+                case "disconnected":
+                    return `${name} — Disconnected`;
+                default:
+                    return "No printer selected";
+            }
+        },
+
         bindPrinterUi() {
             if (typeof ThermalPrinter === "undefined") {
                 return;
@@ -68,6 +115,7 @@ function transaksiPage() {
                     this.savedPrinters = ThermalPrinter.getSavedPrinters();
                     this.selectedPrinterId =
                         ThermalPrinter.getLastPrinter()?.id || null;
+                    this.syncPrinterStatus();
                     this.printerModalOpen = true;
                 },
                 closeModal: () => {
@@ -83,6 +131,7 @@ function transaksiPage() {
                 refreshPrinters: (printers) => {
                     this.savedPrinters =
                         printers || ThermalPrinter.getSavedPrinters();
+                    this.syncPrinterStatus();
 
                     if (
                         this.selectedPrinterId &&
@@ -93,6 +142,9 @@ function transaksiPage() {
                         this.selectedPrinterId =
                             ThermalPrinter.getLastPrinter()?.id || null;
                     }
+                },
+                onStatusChange: (state) => {
+                    this.syncPrinterStatus(state);
                 },
                 promptPrinterName: ({ deviceName, defaultName }) => {
                     return new Promise((resolve, reject) => {
@@ -110,7 +162,30 @@ function transaksiPage() {
             this.savedPrinters = ThermalPrinter.getSavedPrinters();
             this.selectedPrinterId =
                 ThermalPrinter.getLastPrinter()?.id || null;
-            ThermalPrinter.refreshPrinterStatus();
+            this.syncPrinterStatus(ThermalPrinter.refreshPrinterStatus());
+
+            // Silent auto-reconnect via getDevices() — never opens the picker.
+            ThermalPrinter.autoReconnectOnLoad()
+                .then(() => {
+                    this.savedPrinters = ThermalPrinter.getSavedPrinters();
+                    this.syncPrinterStatus();
+                })
+                .catch((error) => {
+                    console.warn("[ThermalPrinter] autoReconnectOnLoad", error);
+                    this.syncPrinterStatus();
+                });
+        },
+
+        openPrinterManager() {
+            if (typeof ThermalPrinter === "undefined") {
+                return;
+            }
+
+            this.savedPrinters = ThermalPrinter.getSavedPrinters();
+            this.selectedPrinterId =
+                ThermalPrinter.getLastPrinter()?.id || null;
+            this.syncPrinterStatus();
+            this.printerModalOpen = true;
         },
 
         confirmPrinterName() {
@@ -163,12 +238,37 @@ function transaksiPage() {
             this.selectedPrinterId = printerId;
 
             try {
+                // Reconnect saved printer only — no Bluetooth picker.
                 await ThermalPrinter.connectSavedAndPrint(printerId);
             } catch (error) {
                 console.error(error);
             } finally {
                 this.printerBusy = false;
                 this.savedPrinters = ThermalPrinter.getSavedPrinters();
+                this.syncPrinterStatus();
+            }
+        },
+
+        async printerSelectChange(printerId = null) {
+            if (this.printerBusy) {
+                return;
+            }
+
+            this.printerBusy = true;
+
+            if (printerId) {
+                this.selectedPrinterId = printerId;
+            }
+
+            try {
+                // Explicitly open Bluetooth picker to change/re-authorize.
+                await ThermalPrinter.selectPrinterAndPrint(printerId);
+            } catch (error) {
+                console.error(error);
+            } finally {
+                this.printerBusy = false;
+                this.savedPrinters = ThermalPrinter.getSavedPrinters();
+                this.syncPrinterStatus();
             }
         },
 
@@ -179,11 +279,13 @@ function transaksiPage() {
 
             await ThermalPrinter.disconnectPrinter();
             this.savedPrinters = ThermalPrinter.getSavedPrinters();
+            this.syncPrinterStatus();
         },
 
         printerRemove(printerId) {
             ThermalPrinter.removePrinter(printerId);
             this.savedPrinters = ThermalPrinter.getSavedPrinters();
+            this.syncPrinterStatus();
 
             if (this.selectedPrinterId === printerId) {
                 this.selectedPrinterId =
@@ -205,6 +307,7 @@ function transaksiPage() {
             } finally {
                 this.printerBusy = false;
                 this.savedPrinters = ThermalPrinter.getSavedPrinters();
+                this.syncPrinterStatus();
             }
         },
 
@@ -228,6 +331,7 @@ function transaksiPage() {
             } finally {
                 this.printerBusy = false;
                 this.savedPrinters = ThermalPrinter.getSavedPrinters();
+                this.syncPrinterStatus();
             }
         },
 

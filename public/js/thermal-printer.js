@@ -4,14 +4,16 @@
  *
  * Architecture:
  * - Receipt builders: buildReceiptData / buildReceiptHtml
- * - Printer Manager: pair / silent reconnect / Connect reselect / disconnect / storage
+ * - Printer Manager: pair / silent reconnect / change printer / disconnect / storage
  * - Print orchestration: printTransaction / printTransactionWithFallback
  * - UI bridge: Alpine registers handlers for modal, name prompt, overlay, and toasts
  *
- * Connect notes (Chrome):
- * - Silent reconnect uses navigator.bluetooth.getDevices() + optional watchAdvertisements()
- * - When that API is unavailable or the device is stale, Connect opens requestDevice()
- *   under the user click and updates the existing saved printer record (no duplicates)
+ * Lifecycle:
+ * - Saved printers live in localStorage (deviceId + custom name + GATT UUIDs)
+ * - On page load, autoReconnectOnLoad() uses navigator.bluetooth.getDevices()
+ *   to reconnect WITHOUT opening the Bluetooth picker
+ * - "Select Printer" / Pair New opens the picker only when the user asks to change
+ * - Printing is Bluetooth/ESC/POS only (no window.print() fallback)
  */
 const ThermalPrinter = (() => {
     const OPTIONAL_SERVICES = [
@@ -33,6 +35,7 @@ const ThermalPrinter = (() => {
 
     const STORAGE_KEY = "grosirfelicia.thermalPrinters";
     const RECONNECT_WATCH_TIMEOUT_MS = 12000;
+    const AUTO_RECONNECT_TIMEOUT_MS = 8000;
 
     let cachedDevice = null;
     let cachedCharacteristic = null;
@@ -40,7 +43,11 @@ const ThermalPrinter = (() => {
     const disconnectBoundDevices = new WeakSet();
     let intentionalDisconnect = false;
 
-    /** When silent reconnect fails, the next Connect click for this id opens the picker. */
+    /** idle | connecting | connected | disconnected */
+    let connectionStatus = "idle";
+    let autoReconnectPromise = null;
+
+    /** When silent reconnect fails, the next explicit "Select Printer" opens the picker. */
     let pendingReselectPrinterId = null;
 
     let uiHandlers = {
@@ -50,6 +57,7 @@ const ThermalPrinter = (() => {
         clearOverlay: null,
         refreshPrinters: null,
         promptPrinterName: null,
+        onStatusChange: null,
     };
 
     let pendingPrint = null;
@@ -542,11 +550,14 @@ window.onload = function () {
                 isConnected: connectedId === printer.id,
                 isLastUsed: data.lastPrinterId === printer.id,
                 statusLabel:
-                    connectedId === printer.id ? "Connected" : "Disconnected",
+                    connectedId === printer.id
+                        ? "Connected"
+                        : pendingReselectPrinterId === printer.id
+                          ? "Select printer to continue"
+                          : "Disconnected",
                 needsReselect:
                     connectedId !== printer.id &&
-                    (pendingReselectPrinterId === printer.id ||
-                        !canAttemptSilentReconnect()),
+                    pendingReselectPrinterId === printer.id,
             }));
     }
 
@@ -712,21 +723,47 @@ window.onload = function () {
         return Boolean(cachedDevice?.gatt?.connected && cachedCharacteristic);
     }
 
+    function setConnectionStatus(status) {
+        connectionStatus = status;
+        refreshPrinterList();
+
+        if (typeof uiHandlers.onStatusChange === "function") {
+            uiHandlers.onStatusChange(getConnectionState());
+        }
+    }
+
     function getConnectionState() {
+        const selected = cachedPrinterMeta || getLastPrinter();
+        const connected = isConnected();
+
         return {
-            connected: isConnected(),
-            printer: cachedPrinterMeta,
-            deviceName: cachedDevice?.name || cachedPrinterMeta?.name || null,
+            connected,
+            status: connected ? "connected" : connectionStatus,
+            printer: selected,
+            deviceName: cachedDevice?.name || selected?.name || null,
             pendingReselectPrinterId,
+            canAutoReconnect: canAttemptSilentReconnect(),
+            hasSavedPrinter: Boolean(getLastPrinter()),
         };
     }
 
     function refreshPrinterStatus() {
         if (!cachedDevice?.gatt?.connected) {
             cachedCharacteristic = null;
+
+            if (connectionStatus === "connected") {
+                connectionStatus = getLastPrinter() ? "disconnected" : "idle";
+            }
+        } else if (cachedCharacteristic) {
+            connectionStatus = "connected";
         }
 
         refreshPrinterList();
+
+        if (typeof uiHandlers.onStatusChange === "function") {
+            uiHandlers.onStatusChange(getConnectionState());
+        }
+
         return getConnectionState();
     }
 
@@ -843,10 +880,16 @@ window.onload = function () {
                 cachedCharacteristic = null;
             }
 
-            refreshPrinterList();
-
+            // Keep saved printer metadata — only the live GATT link was lost.
             if (!intentionalDisconnect) {
-                toast("warning", "Printer disconnected.", device.name || "");
+                setConnectionStatus(getLastPrinter() ? "disconnected" : "idle");
+                toast(
+                    "warning",
+                    "Printer disconnected.",
+                    "Nyalakan printer lalu klik Reconnect.",
+                );
+            } else {
+                refreshPrinterList();
             }
         });
     }
@@ -962,14 +1005,19 @@ window.onload = function () {
     }
 
     async function connectToDevice(device, savedPrinter = null, options = {}) {
-        const { preserveName = Boolean(savedPrinter?.name) } = options;
+        const {
+            preserveName = Boolean(savedPrinter?.name),
+            timeoutMs = RECONNECT_WATCH_TIMEOUT_MS,
+        } = options;
 
         cachedDevice = device;
         bindDeviceDisconnect(device);
+        setConnectionStatus("connecting");
 
-        const server = await openGattConnection(device);
+        const server = await openGattConnection(device, { timeoutMs });
 
         if (!server?.connected && !device.gatt?.connected) {
+            setConnectionStatus("disconnected");
             throw makeError("ConnectionFailed", "Koneksi printer gagal.");
         }
 
@@ -982,6 +1030,7 @@ window.onload = function () {
 
         if (!isConnected()) {
             cachedCharacteristic = null;
+            setConnectionStatus("disconnected");
             throw makeError(
                 "ConnectionFailed",
                 "Printer terhubung tetapi belum siap mencetak.",
@@ -1004,12 +1053,86 @@ window.onload = function () {
             pendingReselectPrinterId = null;
         }
 
-        refreshPrinterList();
+        setConnectionStatus("connected");
 
         return {
             characteristic: cachedCharacteristic,
             printer: meta,
         };
+    }
+
+    /**
+     * Page-load / silent reconnect using previously authorized devices only.
+     * Never opens the Bluetooth picker (no user gesture available on load).
+     */
+    async function autoReconnectOnLoad() {
+        if (autoReconnectPromise) {
+            return autoReconnectPromise;
+        }
+
+        autoReconnectPromise = (async () => {
+            if (!navigator.bluetooth) {
+                setConnectionStatus(getLastPrinter() ? "disconnected" : "idle");
+                return { ok: false, reason: "no-bluetooth" };
+            }
+
+            if (isConnected()) {
+                setConnectionStatus("connected");
+                return { ok: true, already: true };
+            }
+
+            const printer = getLastPrinter();
+
+            if (!printer?.deviceId) {
+                setConnectionStatus("idle");
+                return { ok: false, reason: "none" };
+            }
+
+            // Remember which printer is selected even while disconnected.
+            cachedPrinterMeta = printer;
+
+            if (!canAttemptSilentReconnect()) {
+                setConnectionStatus("disconnected");
+                console.info(
+                    "[ThermalPrinter] getDevices() unavailable — auto-reconnect needs Chrome Bluetooth permissions backend / experimental flag.",
+                );
+                return { ok: false, reason: "getDevices-unavailable" };
+            }
+
+            setConnectionStatus("connecting");
+
+            try {
+                const device = await findGrantedDevice(printer.deviceId);
+
+                if (!device) {
+                    setConnectionStatus("disconnected");
+                    return { ok: false, reason: "not-authorized" };
+                }
+
+                await connectToDevice(device, printer, {
+                    preserveName: true,
+                    timeoutMs: AUTO_RECONNECT_TIMEOUT_MS,
+                });
+
+                setConnectionStatus("connected");
+                return { ok: true, printer: cachedPrinterMeta };
+            } catch (error) {
+                console.warn(
+                    "[ThermalPrinter] Auto-reconnect failed (printer may be off).",
+                    error,
+                );
+                setConnectionStatus("disconnected");
+                // Keep localStorage + cachedPrinterMeta intact.
+                cachedPrinterMeta = printer;
+                return { ok: false, reason: "offline", error };
+            }
+        })();
+
+        try {
+            return await autoReconnectPromise;
+        } finally {
+            autoReconnectPromise = null;
+        }
     }
 
     async function findGrantedDevice(deviceId) {
@@ -1187,13 +1310,17 @@ window.onload = function () {
     }
 
     /**
-     * Connect to a saved printer. Uses silent reconnect when possible;
-     * otherwise opens the device picker under the Connect click gesture.
+     * Connect to a saved printer and make it active for printing.
+     * By default does NOT open the Bluetooth picker (POS reconnect behavior).
+     * Pass forceReselect / allowPickerFallback to change or recover a device.
      */
     async function connectPrinter(printerId = null, options = {}) {
         assertBluetoothAvailable();
 
-        const { forceReselect = false } = options;
+        const {
+            forceReselect = false,
+            allowPickerFallback = false,
+        } = options;
         const printers = readStorage().printers;
         const printer = printerId
             ? printers.find((item) => item.id === printerId)
@@ -1203,28 +1330,29 @@ window.onload = function () {
             throw makeError("PrinterNotFound", "Printer not found.");
         }
 
+        // Already on this printer — keep it active and print with it.
         if (
             cachedDevice?.id === printer.deviceId &&
             isConnected() &&
             cachedPrinterMeta?.id === printer.id
         ) {
             touchPrinter(printer.id);
-            toast("success", "Printer connected.", printer.name);
+            pendingReselectPrinterId = null;
+            setConnectionStatus("connected");
             return printer;
         }
 
-        const mustReselect =
-            forceReselect ||
-            pendingReselectPrinterId === printer.id ||
-            !canAttemptSilentReconnect();
-
-        if (mustReselect) {
+        // User explicitly asked to pick / change the device.
+        if (forceReselect || pendingReselectPrinterId === printer.id) {
             pendingReselectPrinterId = null;
             refreshPrinterList();
 
             try {
+                setConnectionStatus("connecting");
                 return await reselectAndConnectPrinter(printer);
             } catch (error) {
+                setConnectionStatus("disconnected");
+
                 if (
                     error?.name === "NotFoundError" ||
                     error?.name === "SecurityError"
@@ -1242,36 +1370,107 @@ window.onload = function () {
             }
         }
 
-        await showOverlay("Connecting to printer...");
+        const hasCachedMatch = cachedDevice?.id === printer.deviceId;
+        const canUseGrantedDevices = canAttemptSilentReconnect();
 
-        try {
-            const connected = await reconnectPrinter(printer);
-            await holdOverlay(350);
-            toast("success", "Printer connected.", connected.name);
-            return connected;
-        } catch (error) {
-            clearOverlay();
+        // Silent reconnect via cache or getDevices() — no picker.
+        if (hasCachedMatch || canUseGrantedDevices) {
+            await showOverlay("Connecting to printer...");
+            setConnectionStatus("connecting");
 
-            // Mark for picker on the next Connect click (user gesture required).
-            pendingReselectPrinterId = printer.id;
-            refreshPrinterList();
+            try {
+                const connected = await reconnectPrinter(printer);
+                pendingReselectPrinterId = null;
+                setConnectionStatus("connected");
+                await holdOverlay(350);
+                toast("success", "Printer connected.", connected.name);
+                return connected;
+            } catch (error) {
+                clearOverlay();
+                setConnectionStatus("disconnected");
+                cachedPrinterMeta = printer;
 
-            const message =
-                error?.name === "PrinterTimeout"
-                    ? "Printer tidak merespons. Pastikan printer menyala, lalu klik Connect lagi untuk memilih perangkat."
-                    : "Koneksi otomatis gagal. Klik Connect lagi untuk memilih printer.";
+                if (allowPickerFallback) {
+                    console.warn(
+                        "[ThermalPrinter] Silent reconnect failed, opening device picker.",
+                        error,
+                    );
+                    try {
+                        setConnectionStatus("connecting");
+                        return await reselectAndConnectPrinter(printer);
+                    } catch (pickerError) {
+                        setConnectionStatus("disconnected");
 
-            toast("warning", "Perlu pilih printer lagi.", message);
+                        if (
+                            pickerError?.name === "NotFoundError" ||
+                            pickerError?.name === "SecurityError"
+                        ) {
+                            toast("info", "Pemilihan printer dibatalkan.");
+                            throw pickerError;
+                        }
 
-            const wrapped = makeError(
-                "PrinterNeedsReselect",
-                message,
-            );
-            wrapped.cause = error;
-            throw wrapped;
-        } finally {
-            clearOverlay();
+                        toast(
+                            "error",
+                            "Connection failed.",
+                            pickerError?.message ||
+                                "Tidak dapat terhubung ke printer.",
+                        );
+                        throw pickerError;
+                    }
+                }
+
+                pendingReselectPrinterId = printer.id;
+                refreshPrinterList();
+
+                const message =
+                    error?.name === "PrinterTimeout"
+                        ? "Printer tidak merespons. Nyalakan printer lalu Reconnect, atau Select Printer untuk ganti perangkat."
+                        : "Tidak dapat terhubung. Klik Reconnect setelah printer menyala, atau Select Printer untuk ganti.";
+
+                toast("warning", "Printer disconnected.", message);
+
+                const wrapped = makeError("PrinterNeedsReselect", message);
+                wrapped.cause = error;
+                throw wrapped;
+            } finally {
+                clearOverlay();
+            }
         }
+
+        // No getDevices / no cached handle: cannot silent-reconnect.
+        setConnectionStatus("disconnected");
+        cachedPrinterMeta = printer;
+        pendingReselectPrinterId = printer.id;
+        refreshPrinterList();
+
+        if (allowPickerFallback) {
+            try {
+                setConnectionStatus("connecting");
+                return await reselectAndConnectPrinter(printer);
+            } catch (error) {
+                setConnectionStatus("disconnected");
+
+                if (
+                    error?.name === "NotFoundError" ||
+                    error?.name === "SecurityError"
+                ) {
+                    toast("info", "Pemilihan printer dibatalkan.");
+                    throw error;
+                }
+
+                toast(
+                    "error",
+                    "Connection failed.",
+                    error?.message || "Tidak dapat terhubung ke printer.",
+                );
+                throw error;
+            }
+        }
+
+        const message =
+            "Browser tidak bisa reconnect otomatis. Klik Select Printer untuk memilih perangkat.";
+        toast("warning", "Printer disconnected.", message);
+        throw makeError("PrinterNeedsReselect", message);
     }
 
     async function disconnectPrinter({ silent = false } = {}) {
@@ -1289,8 +1488,9 @@ window.onload = function () {
 
         cachedCharacteristic = null;
         cachedDevice = null;
-        cachedPrinterMeta = null;
-        refreshPrinterList();
+        // Keep last selected printer identity for status / reconnect.
+        cachedPrinterMeta = getLastPrinter();
+        setConnectionStatus(cachedPrinterMeta ? "disconnected" : "idle");
 
         if (!silent) {
             toast("info", "Printer disconnected.");
@@ -1407,13 +1607,20 @@ window.onload = function () {
 
         const { transaction, formatAmount } = pendingPrint;
 
-        closeModal();
-
         try {
             await printTransaction(transaction, formatAmount);
+            closeModal();
             clearPendingPrint();
         } catch (error) {
-            clearPendingPrint(error);
+            // Keep the pending receipt so the user can retry from the modal.
+            // Never fall back to the browser HTML print dialog.
+            openModal();
+            refreshPrinterList();
+            toast(
+                "error",
+                "Print failed.",
+                error?.message || "Gagal mencetak ke printer Bluetooth.",
+            );
             throw error;
         }
     }
@@ -1433,6 +1640,11 @@ window.onload = function () {
                 return;
             }
 
+            if (pendingPrint) {
+                openModal();
+                refreshPrinterList();
+            }
+
             toast(
                 "error",
                 "Connection failed.",
@@ -1442,22 +1654,70 @@ window.onload = function () {
         }
     }
 
+    /** Reconnect saved printer (no picker) then print pending receipt if any. */
     async function connectSavedAndPrint(printerId) {
         try {
-            await connectPrinter(printerId);
+            await connectPrinter(printerId, { allowPickerFallback: false });
             await printPendingIfAny();
         } catch (error) {
             if (
-                error?.name === "PrinterNotFound" ||
-                error?.name === "PrinterNeedsReselect"
+                error?.name === "NotFoundError" ||
+                error?.name === "SecurityError"
             ) {
-                // Toast already shown by connectPrinter for NeedsReselect.
-                if (error?.name === "PrinterNotFound") {
-                    toast("error", "Printer not found.");
-                }
+                toast("info", "Pemilihan printer dibatalkan.");
+                return;
             }
 
-            // Keep modal open so user can pair / connect again.
+            if (error?.name === "PrinterNotFound") {
+                toast("error", "Printer not found.");
+            }
+
+            if (pendingPrint) {
+                openModal();
+                refreshPrinterList();
+            }
+
+            throw error;
+        }
+    }
+
+    /**
+     * Explicitly change/re-authorize a printer via the Bluetooth picker,
+     * then print any pending receipt.
+     */
+    async function selectPrinterAndPrint(printerId = null) {
+        try {
+            if (printerId) {
+                await connectPrinter(printerId, {
+                    forceReselect: true,
+                    allowPickerFallback: true,
+                });
+            } else {
+                await pairPrinter({ askForName: true });
+            }
+
+            await printPendingIfAny();
+        } catch (error) {
+            clearOverlay();
+
+            if (
+                error?.name === "NotFoundError" ||
+                error?.name === "SecurityError"
+            ) {
+                toast("info", "Pemilihan printer dibatalkan.");
+                return;
+            }
+
+            if (pendingPrint) {
+                openModal();
+                refreshPrinterList();
+            }
+
+            toast(
+                "error",
+                "Connection failed.",
+                error?.message || "Gagal memilih printer.",
+            );
             throw error;
         }
     }
@@ -1503,26 +1763,28 @@ window.onload = function () {
         }
     }
 
+    /**
+     * Print via Bluetooth thermal printer only.
+     * Prefers an already-connected session or silent getDevices() reconnect.
+     * Opens the printer modal only when reconnect is impossible — never
+     * auto-opens the Bluetooth picker, and never uses window.print().
+     */
     async function printTransactionWithFallback(transaction, formatAmount) {
         if (!navigator.bluetooth) {
             toast(
-                "warning",
+                "error",
                 "Bluetooth unavailable.",
-                "Mencetak lewat dialog browser.",
+                "Browser ini tidak mendukung Web Bluetooth. Gunakan Chrome/Edge.",
             );
-            openPrintPage(transaction, formatAmount);
-            return;
+            throw makeError(
+                "BluetoothUnavailable",
+                "Browser tidak mendukung Web Bluetooth.",
+            );
         }
 
         try {
-            const lastPrinter = getLastPrinter();
-
-            if (isConnected() || lastPrinter) {
-                await showOverlay(
-                    isConnected()
-                        ? "Printing..."
-                        : "Connecting to printer...",
-                );
+            if (autoReconnectPromise) {
+                await autoReconnectPromise;
             }
 
             if (isConnected()) {
@@ -1530,30 +1792,30 @@ window.onload = function () {
                 return;
             }
 
+            const lastPrinter = getLastPrinter();
+
             if (lastPrinter) {
                 try {
-                    // Silent reconnect only (no picker without gesture).
-                    await reconnectPrinter(lastPrinter);
-                    await holdOverlay(350);
-                    toast("success", "Printer connected.", lastPrinter.name);
-                    await showOverlay("Printing...");
+                    await connectPrinter(lastPrinter.id, {
+                        allowPickerFallback: false,
+                    });
                     await printTransaction(transaction, formatAmount);
                     return;
                 } catch (error) {
                     clearOverlay();
                     console.warn(
-                        "[ThermalPrinter] Auto-reconnect failed, opening printer modal.",
+                        "[ThermalPrinter] Silent reconnect before print failed, opening printer modal.",
                         error,
                     );
 
-                    pendingReselectPrinterId = lastPrinter.id;
-                    refreshPrinterList();
-
                     toast(
                         "warning",
-                        "Connection failed.",
-                        "Klik Connect pada printer tersimpan, atau Pair New Printer.",
+                        "Printer disconnected.",
+                        "Nyalakan printer lalu Reconnect, atau Select Printer untuk ganti.",
                     );
+
+                    await beginPendingPrint(transaction, formatAmount);
+                    return;
                 }
             }
 
@@ -1565,20 +1827,26 @@ window.onload = function () {
                 return;
             }
 
-            if (
-                error?.name === "NotFoundError" ||
-                error?.name === "SecurityError" ||
-                error?.name === "BluetoothUnavailable"
-            ) {
+            if (error?.name === "BluetoothUnavailable") {
                 throw error;
             }
 
-            console.warn(
-                "Bluetooth print failed, falling back to print page.",
-                error,
+            console.error("[ThermalPrinter] Print failed.", error);
+
+            toast(
+                "error",
+                "Print failed.",
+                error?.message ||
+                    "Gagal mencetak ke printer Bluetooth. Coba Reconnect / Select Printer.",
             );
 
-            openPrintPage(transaction, formatAmount);
+            if (pendingPrint) {
+                openModal();
+                refreshPrinterList();
+                return;
+            }
+
+            throw error;
         }
     }
 
@@ -1589,6 +1857,7 @@ window.onload = function () {
         getConnectionState,
         getLastPrinter,
         refreshPrinterStatus,
+        autoReconnectOnLoad,
 
         // Printer manager
         pairPrinter,
@@ -1603,6 +1872,7 @@ window.onload = function () {
         // Modal actions used by Alpine
         pairAndPrint,
         connectSavedAndPrint,
+        selectPrinterAndPrint,
         cancelPrinterModal,
         printFromModal,
 

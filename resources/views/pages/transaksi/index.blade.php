@@ -10,6 +10,45 @@
 
     <div x-data="transaksiPage()" class="space-y-6">
 
+        <div class="printer-status-bar"
+            :class="{
+                'is-connected': printerStatus.status === 'connected',
+                'is-connecting': printerStatus.status === 'connecting',
+                'is-disconnected': printerStatus.status === 'disconnected',
+                'is-idle': printerStatus.status === 'idle'
+            }">
+            <div class="printer-status-main">
+                <span class="printer-status-dot" aria-hidden="true"></span>
+                <div class="printer-status-copy">
+                    <div class="printer-status-label" x-text="printerStatusLabel"></div>
+                    <div class="printer-status-hint"
+                        x-show="printerStatus.status === 'disconnected'"
+                        x-cloak>
+                        Nyalakan printer lalu Reconnect. Select Printer hanya untuk ganti perangkat.
+                    </div>
+                    <div class="printer-status-hint"
+                        x-show="printerStatus.status === 'disconnected' && !printerStatus.canAutoReconnect"
+                        x-cloak>
+                        Browser ini belum mendukung reconnect otomatis (getDevices). Gunakan Select Printer sekali per sesi.
+                    </div>
+                </div>
+            </div>
+
+            <div class="printer-status-actions">
+                <button type="button" class="printer-status-btn"
+                    x-show="printerStatus.hasSavedPrinter && printerStatus.status !== 'connected'"
+                    :disabled="printerBusy || printerStatus.status === 'connecting'"
+                    @click="printerConnect(selectedPrinterId || printerStatus.printer?.id)">
+                    Reconnect
+                </button>
+                <button type="button" class="printer-status-btn printer-status-btn-secondary"
+                    :disabled="printerBusy"
+                    @click="openPrinterManager()">
+                    Manage
+                </button>
+            </div>
+        </div>
+
         <div class="surface-card relative rounded-3xl p-4 shadow-sm sm:p-5">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div class="min-w-0" @click.outside="calendarOpen = false">
@@ -472,7 +511,7 @@
                                         <div class="printer-item-name" x-text="printer.name"></div>
                                         <div class="printer-item-meta">
                                             <span
-                                                x-text="printer.isConnected ? 'Connected' : (printer.needsReselect ? 'Select again required' : 'Disconnected')"></span>
+                                                x-text="printer.isConnected ? 'Connected' : (printer.needsReselect ? 'Select printer to continue' : 'Disconnected')"></span>
                                             <span class="printer-item-device"
                                                 x-show="printer.deviceName && printer.deviceName !== printer.name"
                                                 x-text="'Device: ' + printer.deviceName"></span>
@@ -482,9 +521,21 @@
                                     <div class="printer-item-actions">
                                         <button type="button"
                                             class="printer-mini-btn printer-mini-btn-primary"
-                                            :disabled="printerBusy || printer.isConnected"
-                                            @click.stop="printerConnect(printer.id)"
-                                            x-text="printer.isConnected ? 'Connected' : (printer.needsReselect ? 'Select Printer' : 'Connect')">
+                                            x-show="!printer.isConnected"
+                                            :disabled="printerBusy"
+                                            @click.stop="printerConnect(printer.id)">
+                                            Reconnect
+                                        </button>
+                                        <button type="button"
+                                            class="printer-mini-btn printer-mini-btn-primary"
+                                            x-show="printer.isConnected"
+                                            disabled>
+                                            Connected
+                                        </button>
+                                        <button type="button" class="printer-mini-btn"
+                                            :disabled="printerBusy"
+                                            @click.stop="printerSelectChange(printer.id)">
+                                            Select Printer
                                         </button>
                                         <button type="button" class="printer-mini-btn"
                                             x-show="printer.isConnected"
@@ -505,7 +556,7 @@
                         <button type="button" class="printer-pair-btn" :disabled="printerBusy"
                             @click="printerPairNew()">
                             <span class="printer-pair-plus">+</span>
-                            <span>Pair New Printer</span>
+                            <span>Select / Pair New Printer</span>
                         </button>
                     </div>
 
