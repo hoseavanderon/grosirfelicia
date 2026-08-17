@@ -26,6 +26,12 @@ function transaksiPage() {
         selectedPrinterId: null,
         printerBusy: false,
 
+        printerNameModalOpen: false,
+        printerNameDraft: "",
+        printerNameDeviceLabel: "",
+        printerNameResolve: null,
+        printerNameReject: null,
+
         editMode: false,
         editForm: null,
         productOptions: [],
@@ -88,11 +94,64 @@ function transaksiPage() {
                             ThermalPrinter.getLastPrinter()?.id || null;
                     }
                 },
+                promptPrinterName: ({ deviceName, defaultName }) => {
+                    return new Promise((resolve, reject) => {
+                        this.printerNameDeviceLabel =
+                            deviceName || "Bluetooth Printer";
+                        this.printerNameDraft =
+                            defaultName || deviceName || "";
+                        this.printerNameResolve = resolve;
+                        this.printerNameReject = reject;
+                        this.printerNameModalOpen = true;
+                    });
+                },
             });
 
             this.savedPrinters = ThermalPrinter.getSavedPrinters();
             this.selectedPrinterId =
                 ThermalPrinter.getLastPrinter()?.id || null;
+            ThermalPrinter.refreshPrinterStatus();
+        },
+
+        confirmPrinterName() {
+            const name = String(this.printerNameDraft || "").trim();
+
+            if (!name) {
+                this.showToast(
+                    "error",
+                    "Validasi",
+                    "Nama printer tidak boleh kosong.",
+                );
+                return;
+            }
+
+            const resolve = this.printerNameResolve;
+            this.printerNameModalOpen = false;
+            this.printerNameResolve = null;
+            this.printerNameReject = null;
+            this.printerNameDraft = "";
+            this.printerNameDeviceLabel = "";
+
+            if (typeof resolve === "function") {
+                resolve(name);
+            }
+        },
+
+        cancelPrinterName() {
+            const resolve = this.printerNameResolve;
+            const deviceFallback =
+                this.printerNameDeviceLabel || "Bluetooth Printer";
+
+            this.printerNameModalOpen = false;
+            this.printerNameResolve = null;
+            this.printerNameReject = null;
+            this.printerNameDraft = "";
+            this.printerNameDeviceLabel = "";
+
+            // Keep pairing flow moving; fall back to the Bluetooth device name.
+            if (typeof resolve === "function") {
+                resolve(deviceFallback);
+            }
         },
 
         async printerConnect(printerId) {
@@ -111,6 +170,15 @@ function transaksiPage() {
                 this.printerBusy = false;
                 this.savedPrinters = ThermalPrinter.getSavedPrinters();
             }
+        },
+
+        async printerDisconnect() {
+            if (this.printerBusy) {
+                return;
+            }
+
+            await ThermalPrinter.disconnectPrinter();
+            this.savedPrinters = ThermalPrinter.getSavedPrinters();
         },
 
         printerRemove(printerId) {

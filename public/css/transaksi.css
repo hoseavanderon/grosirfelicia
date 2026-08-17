@@ -931,11 +931,54 @@
     margin-top: 4px;
     font-size: 0.75rem;
     opacity: 0.65;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.printer-item-device {
+    opacity: 0.85;
 }
 
 .printer-item-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
+}
+
+.printer-name-device {
+    margin-bottom: 14px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--hover);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+}
+
+.printer-name-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    opacity: 0.7;
+}
+
+.printer-name-input {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.printer-name-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
 }
 
 .printer-mini-btn {

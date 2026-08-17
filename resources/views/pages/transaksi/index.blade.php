@@ -475,15 +475,25 @@
                                         <div class="printer-item-name" x-text="printer.name"></div>
                                         <div class="printer-item-meta">
                                             <span
-                                                x-text="printer.isConnected ? 'Connected' : (printer.isLastUsed ? 'Last Used' : 'Saved')"></span>
+                                                x-text="printer.isConnected ? 'Connected' : (printer.needsReselect ? 'Select again required' : 'Disconnected')"></span>
+                                            <span class="printer-item-device"
+                                                x-show="printer.deviceName && printer.deviceName !== printer.name"
+                                                x-text="'Device: ' + printer.deviceName"></span>
                                         </div>
                                     </div>
 
                                     <div class="printer-item-actions">
-                                        <button type="button" class="printer-mini-btn printer-mini-btn-primary"
+                                        <button type="button"
+                                            class="printer-mini-btn printer-mini-btn-primary"
+                                            :disabled="printerBusy || printer.isConnected"
+                                            @click.stop="printerConnect(printer.id)"
+                                            x-text="printer.isConnected ? 'Connected' : (printer.needsReselect ? 'Select Printer' : 'Connect')">
+                                        </button>
+                                        <button type="button" class="printer-mini-btn"
+                                            x-show="printer.isConnected"
                                             :disabled="printerBusy"
-                                            @click.stop="printerConnect(printer.id)">
-                                            Connect
+                                            @click.stop="printerDisconnect()">
+                                            Disconnect
                                         </button>
                                         <button type="button" class="printer-mini-btn"
                                             :disabled="printerBusy"
@@ -511,6 +521,52 @@
                             :disabled="printerBusy || (!selectedPrinterId && savedPrinters.length === 0)"
                             @click="printerModalPrint()">
                             Print
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template x-teleport="body">
+            <div x-show="printerNameModalOpen" x-cloak class="printer-modal-backdrop"
+                style="z-index: 140;"
+                @keydown.escape.window="printerNameModalOpen && cancelPrinterName()">
+                <div class="printer-modal printer-name-modal" @click.stop>
+                    <div class="printer-modal-header">
+                        <div>
+                            <h3 class="printer-modal-title">Name Printer</h3>
+                            <p class="printer-modal-subtitle">
+                                Beri nama kustom untuk printer ini
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="printer-modal-body">
+                        <div class="printer-name-device">
+                            Device selected:
+                            <strong x-text="printerNameDeviceLabel"></strong>
+                        </div>
+
+                        <label class="printer-name-label" for="printer-custom-name">
+                            Custom name
+                        </label>
+                        <input id="printer-custom-name" type="text" class="printer-name-input"
+                            x-model="printerNameDraft"
+                            @keydown.enter.prevent="confirmPrinterName()"
+                            placeholder="Contoh: Kasir Utama"
+                            maxlength="60"
+                            x-ref="printerNameInput"
+                            x-init="$watch('printerNameModalOpen', (open) => open && $nextTick(() => $refs.printerNameInput?.focus()))" />
+                    </div>
+
+                    <div class="printer-modal-footer">
+                        <button type="button" class="printer-footer-btn printer-footer-cancel"
+                            @click="cancelPrinterName()">
+                            Skip
+                        </button>
+                        <button type="button" class="printer-footer-btn printer-footer-print"
+                            @click="confirmPrinterName()">
+                            Save
                         </button>
                     </div>
                 </div>
