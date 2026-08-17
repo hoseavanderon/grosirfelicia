@@ -139,15 +139,12 @@
                         <div class="receipt-divider"></div>
 
                         <div class="receipt-section">
-                            <template x-for="item in selectedTransaction?.items || []"
-                                :key="item.detail_product_id + '-' + item.qty + '-' + item.unit_price">
+                            <template x-for="item in selectedTransaction?.receipt_items || []"
+                                :key="(item.product_id || item.product_name) + '-' + item.qty + '-' + item.unit_price">
                                 <div class="receipt-item">
                                     <div class="receipt-item-top">
                                         <span x-text="item.product_name"></span>
                                         <span>Rp <span x-text="formatRupiah(item.line_total)"></span></span>
-                                    </div>
-                                    <div class="receipt-item-sub">
-                                        Exp: <span x-text="item.expired_label"></span>
                                     </div>
                                     <div class="receipt-item-sub">
                                         <span x-text="item.qty"></span> × Rp

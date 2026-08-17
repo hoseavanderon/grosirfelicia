@@ -138,19 +138,29 @@ const ThermalPrinter = (() => {
         return lines.length ? lines : [""];
     }
 
-    function buildReceiptHtml(transaction, formatAmount = formatRupiah) {
-        const itemsHtml = (transaction.items || [])
-            .map((item) => {
-                const expiredLine = item.expired_label
-                    ? `<div class="print-item-exp">Exp: ${item.expired_label}</div>`
-                    : "";
+    function resolveReceiptItems(transaction) {
+        if (Array.isArray(transaction?.receipt_items)) {
+            return transaction.receipt_items;
+        }
 
+        if (
+            typeof ReceiptBuilder !== "undefined" &&
+            typeof ReceiptBuilder.forReceipt === "function"
+        ) {
+            return ReceiptBuilder.forReceipt(transaction).items || [];
+        }
+
+        return transaction?.items || [];
+    }
+
+    function buildReceiptHtml(transaction, formatAmount = formatRupiah) {
+        const itemsHtml = resolveReceiptItems(transaction)
+            .map((item) => {
                 return `
                 <div class="print-item">
                     <div class="print-item-name">
                         ${item.product_name}
                     </div>
-                    ${expiredLine}
 
                     <div class="print-item-top">
                         <span>${item.qty} x Rp ${formatAmount(item.unit_price)}</span>
@@ -329,8 +339,8 @@ window.onload = function () {
 
         encoder.divider();
 
-        // Items
-        (transaction.items || []).forEach((item) => {
+        // Items (product-level aggregation; no batch/expiration rows)
+        resolveReceiptItems(transaction).forEach((item) => {
             encoder.text(item.product_name || "").newline();
 
             encoder

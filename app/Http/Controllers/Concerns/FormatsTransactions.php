@@ -3,17 +3,20 @@
 namespace App\Http\Controllers\Concerns;
 
 use App\Models\Transaction;
+use Illuminate\Support\Collection;
 
 trait FormatsTransactions
 {
     protected function formatTransaction(Transaction $transaction): array
     {
         $items = $transaction->detailTransactions->map(function ($detail) {
-            $expired = $detail->detailProduct?->expired;
-            $productName = $detail->detailProduct?->product?->nama_produk ?? 'Produk';
+            $detailProduct = $detail->detailProduct;
+            $expired = $detailProduct?->expired;
+            $productName = $detailProduct?->product?->nama_produk ?? 'Produk';
 
             return [
                 'detail_product_id' => $detail->detail_product_id,
+                'product_id' => $detailProduct?->product_id,
                 'product_name' => $productName,
                 'expired' => $expired?->format('Y-m-d'),
                 'expired_label' => $expired?->translatedFormat('d M Y') ?? '-',
@@ -23,6 +26,7 @@ trait FormatsTransactions
             ];
         })->values();
 
+        $receiptItems = $this->groupItemsForReceipt($items);
         $amount = (int) $items->sum('line_total');
         $createdAt = $transaction->created_at;
         $payment = $this->paymentMeta($transaction->metode_pembayaran);
@@ -44,8 +48,49 @@ trait FormatsTransactions
             'status' => $payment['copy_status'],
             'status_label' => $payment['label'],
             'status_class' => $payment['class'],
+            // Detail/batch-level rows — used by edit mode / stock-aware UI.
             'items' => $items,
+            // Product-level rows — used by receipt modal, print, and WhatsApp.
+            'receipt_items' => $receiptItems,
         ];
+    }
+
+    /**
+     * Aggregate detail-transaction rows by product_id for receipt display/print.
+     * Quantities and line totals are summed; unit price is preserved when uniform.
+     *
+     * @param  Collection<int, array<string, mixed>>  $items
+     * @return Collection<int, array<string, mixed>>
+     */
+    protected function groupItemsForReceipt(Collection $items): Collection
+    {
+        return $items
+            ->groupBy(function (array $item) {
+                if (! empty($item['product_id'])) {
+                    return 'product-'.$item['product_id'];
+                }
+
+                return 'name-'.mb_strtolower((string) ($item['product_name'] ?? 'produk'));
+            })
+            ->map(function (Collection $group) {
+                $qty = (int) $group->sum('qty');
+                $lineTotal = (int) $group->sum('line_total');
+                $uniquePrices = $group->pluck('unit_price')->unique()->values();
+                $unitPrice = $uniquePrices->count() === 1
+                    ? (int) $uniquePrices->first()
+                    : (int) round($lineTotal / max($qty, 1));
+
+                $first = $group->first();
+
+                return [
+                    'product_id' => $first['product_id'] ?? null,
+                    'product_name' => $first['product_name'] ?? 'Produk',
+                    'qty' => $qty,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $lineTotal,
+                ];
+            })
+            ->values();
     }
 
     protected function formatPaymentPayload(Transaction $transaction): array

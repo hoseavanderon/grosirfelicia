@@ -979,7 +979,9 @@ function transaksiPage() {
 
             try {
                 await ThermalPrinter.printTransactionWithFallback(
-                    this.selectedTransaction,
+                    typeof ReceiptBuilder !== "undefined"
+                        ? ReceiptBuilder.forReceipt(this.selectedTransaction)
+                        : this.selectedTransaction,
                     this.formatRupiah.bind(this),
                 );
             } catch (error) {
