@@ -372,7 +372,8 @@
                                         <div>
                                             <label class="receipt-edit-label">Jumlah (PCS)</label>
                                             <input type="number" min="1" class="receipt-edit-input"
-                                                x-model.number="item.qty" @input="recalculateEditItem(item)">
+                                                x-model="item.qty" @input="recalculateEditItem(item)"
+                                                @blur="finalizeEditQty(item)">
                                         </div>
                                         <div>
                                             <label class="receipt-edit-label">Harga Jual</label>

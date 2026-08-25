@@ -1428,13 +1428,36 @@ function transaksiPage() {
             this.recalculateEditItem(item);
         },
 
-        recalculateEditItem(item) {
-            const qty = Math.max(1, parseInt(item.qty, 10) || 1);
+        recalculateEditItem(item, options = {}) {
+            const finalizeQty = options.finalizeQty === true;
+            const parsedQty = parseInt(item.qty, 10);
+            const qtyIsBlank =
+                item.qty === "" ||
+                item.qty === null ||
+                item.qty === undefined;
+
+            let qty;
+
+            if (qtyIsBlank || !Number.isFinite(parsedQty) || parsedQty < 1) {
+                if (finalizeQty) {
+                    qty = 1;
+                    item.qty = qty;
+                } else {
+                    qty = 0;
+                }
+            } else {
+                qty = parsedQty;
+                item.qty = qty;
+            }
+
             const unitPrice = Math.max(0, parseInt(item.unit_price, 10) || 0);
 
-            item.qty = qty;
             item.unit_price = unitPrice;
             item.line_total = qty * unitPrice;
+        },
+
+        finalizeEditQty(item) {
+            this.recalculateEditItem(item, { finalizeQty: true });
         },
 
         onEditCustomerQueryInput() {
