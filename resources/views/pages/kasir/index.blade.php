@@ -217,7 +217,7 @@
                     </label>
 
                     <input x-model="qty" x-ref="qtyInput" autocomplete="off"
-                        x-effect="productModal && $nextTick(() => focusQtyInput())" @keydown.enter="addToCart"
+                        @keydown="onQtyDigitKeydown" @keydown.enter="addToCart"
                         type="text" inputmode="numeric" enterkeyhint="done" class="qty-input" />
 
                 </div>

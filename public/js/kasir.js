@@ -15,7 +15,7 @@ function kasirPage(categories, products) {
         isDragging: false,
         sortableInstance: null,
 
-        qty: "",
+        qty: 0,
 
         selectedCustomer: null,
         customerQuery: "",
@@ -80,6 +80,15 @@ function kasirPage(categories, products) {
 
         init() {
             this.loadCart();
+
+            this.$watch("productModal", (open) => {
+                if (!open) {
+                    clearTimeout(this.qtyFocusTimer);
+                    return;
+                }
+
+                this.scheduleQtyFocus();
+            });
 
             this.$nextTick(() => {
                 this.initSortable();
@@ -340,13 +349,32 @@ function kasirPage(categories, products) {
 
         openProductDetail(product) {
             this.selectedProduct = product;
-            this.qty = "";
+            this.qty = 0;
             this.productModal = true;
             this.lockSelectionUntilPointerUp();
+        },
+
+        scheduleQtyFocus() {
+            const run = () => this.focusQtyInput();
 
             this.$nextTick(() => {
-                this.focusQtyInput();
+                run();
+                requestAnimationFrame(run);
+
+                const overlay = this.$refs.qtyInput?.closest(".fixed");
+
+                if (overlay) {
+                    const onEnd = () => {
+                        overlay.removeEventListener("transitionend", onEnd);
+                        run();
+                    };
+
+                    overlay.addEventListener("transitionend", onEnd);
+                }
             });
+
+            clearTimeout(this.qtyFocusTimer);
+            this.qtyFocusTimer = setTimeout(run, 240);
         },
 
         focusQtyInput() {
@@ -359,11 +387,28 @@ function kasirPage(categories, products) {
             input.focus({ preventScroll: true });
 
             try {
-                const caret = input.value.length;
+                const caret = String(input.value).length;
                 input.setSelectionRange(caret, caret);
             } catch {
                 // Some browsers reject setSelectionRange on certain input modes.
             }
+        },
+
+        onQtyDigitKeydown(event) {
+            if (event.ctrlKey || event.metaKey || event.altKey) {
+                return;
+            }
+
+            if (event.key.length !== 1 || event.key < "0" || event.key > "9") {
+                return;
+            }
+
+            if (String(this.qty) !== "0") {
+                return;
+            }
+
+            event.preventDefault();
+            this.qty = event.key;
         },
 
         lockSelectionUntilPointerUp() {
