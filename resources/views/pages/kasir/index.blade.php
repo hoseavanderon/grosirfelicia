@@ -117,6 +117,8 @@
                             @touchend="cancelHold()"
                             @touchcancel="cancelHold()"
                             @contextmenu.prevent
+                            @selectstart.prevent
+                            @dragstart.prevent
                             @click="handleProductClick({ ...product, ...detail })">
 
                             {{-- Expired --}}
@@ -176,7 +178,7 @@
         {{-- Modal Tambah Produk --}}
         <x-ui.modal show="productModal" maxWidth="lg">
 
-            <div class="modal-body">
+            <div class="modal-body kasir-add-product-modal">
 
                 <div class="modal-top">
 
@@ -214,9 +216,9 @@
                         Jumlah (Pcs)
                     </label>
 
-                    <input x-model="qty" x-ref="qtyInput"
-                        x-effect="productModal && $nextTick(() => $refs.qtyInput.focus())" @keydown.enter="addToCart"
-                        type="text" inputmode="numeric" class="qty-input" />
+                    <input x-model="qty" x-ref="qtyInput" autocomplete="off"
+                        x-effect="productModal && $nextTick(() => focusQtyInput())" @keydown.enter="addToCart"
+                        type="text" inputmode="numeric" enterkeyhint="done" class="qty-input" />
 
                 </div>
 

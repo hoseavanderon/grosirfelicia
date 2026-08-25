@@ -15,7 +15,7 @@ function kasirPage(categories, products) {
         isDragging: false,
         sortableInstance: null,
 
-        qty: 1,
+        qty: "",
 
         selectedCustomer: null,
         customerQuery: "",
@@ -273,6 +273,12 @@ function kasirPage(categories, products) {
                 return;
             }
 
+            // Stop the press from starting a text selection that later
+            // spills into the modal while the pointer is still down.
+            if (event?.type === "mousedown" && event.cancelable) {
+                event.preventDefault();
+            }
+
             this.longPressed = false;
             this.holdTouchStartX = null;
             this.holdTouchStartY = null;
@@ -334,8 +340,107 @@ function kasirPage(categories, products) {
 
         openProductDetail(product) {
             this.selectedProduct = product;
-            this.qty = 1;
+            this.qty = "";
             this.productModal = true;
+            this.lockSelectionUntilPointerUp();
+
+            this.$nextTick(() => {
+                this.focusQtyInput();
+            });
+        },
+
+        focusQtyInput() {
+            const input = this.$refs.qtyInput;
+
+            if (!input || !this.productModal) {
+                return;
+            }
+
+            input.focus({ preventScroll: true });
+
+            try {
+                const caret = input.value.length;
+                input.setSelectionRange(caret, caret);
+            } catch {
+                // Some browsers reject setSelectionRange on certain input modes.
+            }
+        },
+
+        lockSelectionUntilPointerUp() {
+            this.unlockSelectionFromHold?.();
+
+            const clearSelection = () => {
+                if (document.activeElement === this.$refs.qtyInput) {
+                    return;
+                }
+
+                window.getSelection?.()?.removeAllRanges();
+            };
+
+            const preventSelect = (event) => {
+                if (event.target?.closest?.(".qty-input")) {
+                    return;
+                }
+
+                event.preventDefault();
+            };
+
+            document.body.classList.add("kasir-hold-modal");
+            document.addEventListener("selectstart", preventSelect, true);
+            clearSelection();
+
+            const selectionWatch = setInterval(clearSelection, 50);
+
+            let released = false;
+
+            const onPointerUp = () => {
+                if (released) {
+                    return;
+                }
+
+                released = true;
+                teardown();
+                this.focusQtyInput();
+
+                const swallowClick = (event) => {
+                    document.removeEventListener("click", swallowClick, true);
+
+                    // Let a release on the input count as a real tap so
+                    // mobile keyboards can open from that user gesture.
+                    if (event.target?.closest?.(".qty-input")) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.focusQtyInput();
+                };
+
+                // Swallow the mouseup/touchend click so it cannot highlight
+                // or activate modal text/buttons, including iOS delayed clicks.
+                document.addEventListener("click", swallowClick, true);
+                setTimeout(() => {
+                    document.removeEventListener("click", swallowClick, true);
+                }, 400);
+            };
+
+            const teardown = () => {
+                document.body.classList.remove("kasir-hold-modal");
+                document.removeEventListener("selectstart", preventSelect, true);
+                window.removeEventListener("pointerup", onPointerUp, true);
+                window.removeEventListener("pointercancel", onPointerUp, true);
+                window.removeEventListener("mouseup", onPointerUp, true);
+                window.removeEventListener("touchend", onPointerUp, true);
+                clearInterval(selectionWatch);
+                this.unlockSelectionFromHold = null;
+            };
+
+            this.unlockSelectionFromHold = teardown;
+
+            window.addEventListener("pointerup", onPointerUp, true);
+            window.addEventListener("pointercancel", onPointerUp, true);
+            window.addEventListener("mouseup", onPointerUp, true);
+            window.addEventListener("touchend", onPointerUp, true);
         },
 
         handleProductClick(product) {
@@ -378,6 +483,27 @@ function kasirPage(categories, products) {
 
         addToCart() {
             const qty = Number(this.qty);
+
+            if (
+                this.qty === "" ||
+                this.qty === null ||
+                this.qty === undefined ||
+                !Number.isFinite(qty) ||
+                qty <= 0
+            ) {
+                window.dispatchEvent(
+                    new CustomEvent("toast", {
+                        detail: {
+                            type: "error",
+                            title: "Jumlah tidak valid",
+                            message: "Masukkan jumlah pcs",
+                        },
+                    }),
+                );
+
+                this.focusQtyInput();
+                return;
+            }
 
             if (qty > this.selectedProduct.stock) {
                 window.dispatchEvent(
