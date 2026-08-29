@@ -1428,8 +1428,35 @@ function transaksiPage() {
             this.recalculateEditItem(item);
         },
 
+        onEditQtyDigitKeydown(event, item) {
+            if (event.ctrlKey || event.metaKey || event.altKey) {
+                return;
+            }
+
+            if (event.key.length !== 1 || event.key < "0" || event.key > "9") {
+                return;
+            }
+
+            if (String(item.qty) !== "0") {
+                return;
+            }
+
+            event.preventDefault();
+            item.qty = event.key;
+            this.recalculateEditItem(item);
+        },
+
         recalculateEditItem(item, options = {}) {
             const finalizeQty = options.finalizeQty === true;
+
+            if (typeof item.qty === "string") {
+                const digitsOnly = item.qty.replace(/\D/g, "");
+
+                if (digitsOnly !== item.qty) {
+                    item.qty = digitsOnly;
+                }
+            }
+
             const parsedQty = parseInt(item.qty, 10);
             const qtyIsBlank =
                 item.qty === "" ||
@@ -1438,16 +1465,17 @@ function transaksiPage() {
 
             let qty;
 
-            if (qtyIsBlank || !Number.isFinite(parsedQty) || parsedQty < 1) {
-                if (finalizeQty) {
-                    qty = 1;
-                    item.qty = qty;
-                } else {
-                    qty = 0;
-                }
+            if (qtyIsBlank) {
+                qty = 0;
+                item.qty = 0;
+            } else if (!Number.isFinite(parsedQty) || parsedQty < 0) {
+                qty = 0;
+                item.qty = 0;
             } else {
                 qty = parsedQty;
-                item.qty = qty;
+                if (finalizeQty) {
+                    item.qty = qty;
+                }
             }
 
             const unitPrice = Math.max(0, parseInt(item.unit_price, 10) || 0);

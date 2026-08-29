@@ -371,9 +371,13 @@
                                     <div class="receipt-edit-fields">
                                         <div>
                                             <label class="receipt-edit-label">Jumlah (PCS)</label>
-                                            <input type="number" min="1" class="receipt-edit-input"
-                                                x-model="item.qty" @input="recalculateEditItem(item)"
-                                                @blur="finalizeEditQty(item)">
+                                            <input type="text" inputmode="numeric" pattern="[0-9]*"
+                                                enterkeyhint="done" autocomplete="off"
+                                                class="receipt-edit-input"
+                                                x-model="item.qty"
+                                                @input="recalculateEditItem(item)"
+                                                @blur="finalizeEditQty(item)"
+                                                @keydown="onEditQtyDigitKeydown($event, item)">
                                         </div>
                                         <div>
                                             <label class="receipt-edit-label">Harga Jual</label>
