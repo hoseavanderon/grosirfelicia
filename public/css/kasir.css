@@ -516,6 +516,12 @@
     -webkit-user-select: text;
 }
 
+.qty-input:focus {
+    outline: none;
+    border-color: color-mix(in srgb, var(--text) 24%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 12%, transparent);
+}
+
 body.kasir-hold-modal,
 body.kasir-hold-modal *:not(input):not(textarea) {
     user-select: none !important;

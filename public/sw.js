@@ -1,5 +1,5 @@
 /* Grosir Felicia PWA service worker — conservative caching only */
-const CACHE_VERSION = "gf-static-v1";
+const CACHE_VERSION = "gf-static-v2";
 const STATIC_CACHE = CACHE_VERSION;
 
 const STATIC_PATH_PREFIXES = ["/css/", "/js/", "/icons/"];
@@ -69,6 +69,10 @@ function isSafeStaticAsset(url) {
         return false;
     }
 
+    if (url.pathname.endsWith("/sw.js") || url.pathname === "/sw.js") {
+        return false;
+    }
+
     if (url.pathname === "/manifest.webmanifest") {
         return true;
     }
@@ -117,18 +121,19 @@ self.addEventListener("fetch", (event) => {
         (async () => {
             const cache = await caches.open(STATIC_CACHE);
             const cached = await cache.match(request);
+            const networkFetch = fetch(request)
+                .then((response) => {
+                    if (response && response.ok && response.type === "basic") {
+                        cache.put(request, response.clone());
+                    }
 
-            if (cached) {
-                return cached;
-            }
+                    return response;
+                })
+                .catch(() => cached);
 
-            const response = await fetch(request);
-
-            if (response && response.ok && response.type === "basic") {
-                cache.put(request, response.clone());
-            }
-
-            return response;
+            // Serve cache immediately when present, then refresh in the background
+            // so JS/CSS updates are not stuck on an old cache-first copy.
+            return cached || networkFetch;
         })(),
     );
 });

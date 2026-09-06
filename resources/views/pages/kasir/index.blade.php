@@ -3,7 +3,7 @@
 @section('title', 'Kasir')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/kasir.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/kasir.css') }}?v={{ filemtime(public_path('css/kasir.css')) }}">
 @endpush
 
 @section('content')
@@ -216,7 +216,8 @@
                         Jumlah (Pcs)
                     </label>
 
-                    <input x-model="qty" x-ref="qtyInput" autocomplete="off"
+                    <input x-model="qty" x-ref="qtyInput" value="0" autocomplete="off"
+                        autocorrect="off" autocapitalize="off" spellcheck="false"
                         @keydown="onQtyDigitKeydown" @keydown.enter="addToCart"
                         type="text" inputmode="numeric" enterkeyhint="done" class="qty-input" />
 
@@ -338,5 +339,5 @@
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="{{ asset('js/kasir.js') }}"></script>
+    <script src="{{ asset('js/kasir.js') }}?v={{ filemtime(public_path('js/kasir.js')) }}"></script>
 @endpush

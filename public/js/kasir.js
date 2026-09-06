@@ -16,6 +16,7 @@ function kasirPage(categories, products) {
         sortableInstance: null,
 
         qty: 0,
+        qtyFocusTimer: null,
 
         selectedCustomer: null,
         customerQuery: "",
@@ -349,19 +350,39 @@ function kasirPage(categories, products) {
 
         openProductDetail(product) {
             this.selectedProduct = product;
-            this.qty = 0;
+            this.resetQtyInput();
             this.productModal = true;
             this.lockSelectionUntilPointerUp();
+        },
+
+        getQtyInput() {
+            return (
+                this.$refs.qtyInput ||
+                document.querySelector(".kasir-add-product-modal .qty-input")
+            );
+        },
+
+        resetQtyInput() {
+            this.qty = 0;
+
+            const input = this.getQtyInput();
+
+            if (input) {
+                input.value = "0";
+            }
         },
 
         scheduleQtyFocus() {
             const run = () => this.focusQtyInput();
 
+            this.resetQtyInput();
+
             this.$nextTick(() => {
+                this.resetQtyInput();
                 run();
                 requestAnimationFrame(run);
 
-                const overlay = this.$refs.qtyInput?.closest(".fixed");
+                const overlay = this.getQtyInput()?.closest(".fixed");
 
                 if (overlay) {
                     const onEnd = () => {
@@ -378,17 +399,26 @@ function kasirPage(categories, products) {
         },
 
         focusQtyInput() {
-            const input = this.$refs.qtyInput;
+            const input = this.getQtyInput();
 
             if (!input || !this.productModal) {
                 return;
             }
 
+            if (String(this.qty) === "0" || this.qty === 0) {
+                this.qty = 0;
+                input.value = "0";
+            }
+
             input.focus({ preventScroll: true });
 
             try {
-                const caret = String(input.value).length;
-                input.setSelectionRange(caret, caret);
+                if (String(input.value) === "0") {
+                    input.select();
+                } else {
+                    const caret = String(input.value).length;
+                    input.setSelectionRange(caret, caret);
+                }
             } catch {
                 // Some browsers reject setSelectionRange on certain input modes.
             }
@@ -415,7 +445,7 @@ function kasirPage(categories, products) {
             this.unlockSelectionFromHold?.();
 
             const clearSelection = () => {
-                if (document.activeElement === this.$refs.qtyInput) {
+                if (document.activeElement === this.getQtyInput()) {
                     return;
                 }
 
@@ -445,7 +475,13 @@ function kasirPage(categories, products) {
 
                 released = true;
                 teardown();
-                this.focusQtyInput();
+
+                const refocus = () => this.focusQtyInput();
+
+                refocus();
+                requestAnimationFrame(refocus);
+                setTimeout(refocus, 0);
+                setTimeout(refocus, 50);
 
                 const swallowClick = (event) => {
                     document.removeEventListener("click", swallowClick, true);
@@ -458,7 +494,7 @@ function kasirPage(categories, products) {
 
                     event.preventDefault();
                     event.stopPropagation();
-                    this.focusQtyInput();
+                    refocus();
                 };
 
                 // Swallow the mouseup/touchend click so it cannot highlight
@@ -466,6 +502,7 @@ function kasirPage(categories, products) {
                 document.addEventListener("click", swallowClick, true);
                 setTimeout(() => {
                     document.removeEventListener("click", swallowClick, true);
+                    refocus();
                 }, 400);
             };
 
