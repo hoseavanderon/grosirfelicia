@@ -3,12 +3,12 @@
 @section('title', 'Riwayat Transaksi')
 
 @push('styles')
-    <link rel="stylesheet" href="{{ asset('css/transaksi.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/transaksi.css') }}?v={{ filemtime(public_path('css/transaksi.css')) }}">
 @endpush
 
 @section('content')
 
-    <div x-data="transaksiPage()" class="space-y-6">
+    <div x-data="transaksiPage(@js($employees))" class="space-y-6">
 
         <div class="printer-status-bar"
             :class="{
@@ -203,6 +203,122 @@
                                             </template>
                                         </div>
                                     </div>
+                                </div>
+
+                                <div class="transaction-staff" @click.stop>
+                                    <div class="transaction-staff-row">
+                                        <div class="transaction-staff-info">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="transaction-staff-icon"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M15.75 6.75a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.5a7.5 7.5 0 0115 0" />
+                                            </svg>
+                                            <div class="transaction-staff-copy">
+                                                <span class="transaction-staff-label">Dibuat oleh</span>
+                                                <span class="transaction-staff-name"
+                                                    x-text="transaction.created_by_employee_name || 'Belum dipilih'"></span>
+                                            </div>
+                                        </div>
+
+                                        <div class="staff-menu-wrap">
+                                            <button type="button" class="staff-edit-btn"
+                                                :class="{
+                                                    'is-open': creatorMenuOpen === transaction.id,
+                                                    'is-updating': creatorUpdating === transaction.id,
+                                                }"
+                                                @click="toggleCreatorMenu(transaction.id)"
+                                                :disabled="creatorUpdating === transaction.id">
+                                                <span x-text="creatorUpdating === transaction.id ? 'Menyimpan' : 'Ubah'"></span>
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="staff-edit-chevron"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                                </svg>
+                                            </button>
+
+                                            <div x-show="creatorMenuOpen === transaction.id" x-cloak
+                                                x-transition:enter="transition ease-out duration-180"
+                                                x-transition:enter-start="opacity-0 -translate-y-1 scale-95"
+                                                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                                x-transition:leave="transition ease-in duration-140"
+                                                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                                x-transition:leave-end="opacity-0 -translate-y-1 scale-95"
+                                                @click.outside="closeCreatorMenu()" class="payment-dropdown staff-dropdown">
+                                                <template x-if="employees.length === 0">
+                                                    <div class="staff-dropdown-empty">Tidak ada pegawai aktif.</div>
+                                                </template>
+                                                <template x-for="employee in employees" :key="employee.id">
+                                                    <button type="button" class="payment-dropdown-item"
+                                                        :class="Number(transaction.created_by_employee_id) === Number(employee.id) ? 'is-active' : ''"
+                                                        @click="updateCreatedBy(transaction, employee.id)">
+                                                        <span class="staff-dropdown-name" x-text="employee.name"></span>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="transaction-staff-row">
+                                        <div class="transaction-staff-info">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="transaction-staff-icon"
+                                                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375A1.125 1.125 0 012.25 17.625V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
+                                            </svg>
+                                            <div class="transaction-staff-copy">
+                                                <span class="transaction-staff-label">Diantar oleh</span>
+                                                <span class="transaction-staff-name"
+                                                    :class="transaction.delivered_by_employee_name ? '' : 'is-empty'"
+                                                    x-text="transaction.delivered_by_employee_name || 'Belum dipilih'"></span>
+                                            </div>
+                                        </div>
+
+                                        <div class="staff-menu-wrap">
+                                            <button type="button" class="staff-edit-btn"
+                                                :class="{
+                                                    'is-open': delivererMenuOpen === transaction.id,
+                                                    'is-updating': delivererUpdating === transaction.id,
+                                                }"
+                                                @click="toggleDelivererMenu(transaction.id)"
+                                                :disabled="delivererUpdating === transaction.id">
+                                                <span
+                                                    x-text="delivererUpdating === transaction.id ? 'Menyimpan' : (transaction.delivered_by_employee_id ? 'Ubah' : 'Pilih pengantar')"></span>
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="staff-edit-chevron"
+                                                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                        d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                                </svg>
+                                            </button>
+
+                                            <div x-show="delivererMenuOpen === transaction.id" x-cloak
+                                                x-transition:enter="transition ease-out duration-180"
+                                                x-transition:enter-start="opacity-0 -translate-y-1 scale-95"
+                                                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                                x-transition:leave="transition ease-in duration-140"
+                                                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                                x-transition:leave-end="opacity-0 -translate-y-1 scale-95"
+                                                @click.outside="closeDelivererMenu()" class="payment-dropdown staff-dropdown">
+                                                <button type="button" class="payment-dropdown-item staff-dropdown-clear"
+                                                    x-show="transaction.delivered_by_employee_id"
+                                                    @click="updateDeliveredBy(transaction, null)">
+                                                    Hapus pengantar
+                                                </button>
+                                                <template x-if="employees.length === 0">
+                                                    <div class="staff-dropdown-empty">Tidak ada pegawai aktif.</div>
+                                                </template>
+                                                <template x-for="employee in employees" :key="'deliver-' + employee.id">
+                                                    <button type="button" class="payment-dropdown-item"
+                                                        :class="Number(transaction.delivered_by_employee_id) === Number(employee.id) ? 'is-active' : ''"
+                                                        @click="updateDeliveredBy(transaction, employee.id)">
+                                                        <span class="staff-dropdown-name" x-text="employee.name"></span>
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <p class="transaction-staff-error" x-show="staffErrorId === transaction.id" x-cloak
+                                        x-text="staffError"></p>
                                 </div>
                             </div>
                         </template>
@@ -642,5 +758,5 @@
 @push('scripts')
     <script src="{{ asset('js/receipt.js') }}"></script>
     <script src="{{ asset('js/thermal-printer.js') }}"></script>
-    <script src="{{ asset('js/transaksi.js') }}"></script>
+    <script src="{{ asset('js/transaksi.js') }}?v={{ filemtime(public_path('js/transaksi.js')) }}"></script>
 @endpush

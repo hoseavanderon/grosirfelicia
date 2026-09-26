@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -111,11 +112,34 @@ class HomeController extends Controller
             )
             ->values();
 
+        $employeeId = session('employee_id');
+        $identifiedEmployee = null;
+
+        if ($employeeId) {
+            $identifiedEmployee = Employee::query()
+                ->whereKey($employeeId)
+                ->where('is_active', true)
+                ->first();
+
+            if (! $identifiedEmployee) {
+                session()->forget('employee_id');
+            }
+        }
+
+        $employees = Employee::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $employeeIdentityReady = $identifiedEmployee !== null;
+
         return view(
             'pages.kasir.index',
             compact(
                 'categories',
-                'products'
+                'products',
+                'employees',
+                'employeeIdentityReady'
             )
         );
     }

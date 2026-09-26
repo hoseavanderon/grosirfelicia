@@ -1,4 +1,8 @@
-function kasirPage(categories, products) {
+function kasirPage(categories, products, employeeIdentity = {}) {
+    const identityEmployees = Array.isArray(employeeIdentity.employees)
+        ? employeeIdentity.employees
+        : [];
+
     return {
         categoryOpen: false,
         productModal: false,
@@ -6,6 +10,12 @@ function kasirPage(categories, products) {
         confirmCheckoutModal: false,
         confirmClearCartModal: false,
         checkoutLoading: false,
+        identityModal: employeeIdentity.ready !== true,
+        employeeReady: employeeIdentity.ready === true,
+        identityEmployees: identityEmployees,
+        identitySaving: false,
+        identityError: "",
+        selectedIdentityId: null,
 
         holdTimer: null,
         longPressed: false,
@@ -824,7 +834,68 @@ function kasirPage(categories, products) {
             });
         },
 
+        keepIdentityModal(event) {
+            if (!this.identityModal) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+        },
+
+        async selectEmployee(employee) {
+            if (this.identitySaving || !employee) {
+                return;
+            }
+
+            this.identitySaving = true;
+            this.identityError = "";
+            this.selectedIdentityId = employee.id;
+
+            try {
+                const response = await fetch("/kasir/employee", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-TOKEN": document.querySelector(
+                            'meta[name="csrf-token"]',
+                        ).content,
+                        Accept: "application/json",
+                    },
+                    body: JSON.stringify({
+                        employee_id: employee.id,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message ||
+                            Object.values(data.errors || {})
+                                .flat()
+                                .join(" ") ||
+                            "Pegawai tidak valid",
+                    );
+                }
+
+                this.employeeReady = true;
+                this.identityModal = false;
+            } catch (error) {
+                this.identityError =
+                    error.message || "Gagal menyimpan identitas pegawai";
+            } finally {
+                this.identitySaving = false;
+                this.selectedIdentityId = null;
+            }
+        },
+
         openConfirmCheckout() {
+            if (!this.employeeReady) {
+                this.identityModal = true;
+                return;
+            }
+
             if (this.cart.length === 0) {
                 return;
             }
@@ -912,6 +983,12 @@ function kasirPage(categories, products) {
         },
 
         async processCheckout() {
+            if (!this.employeeReady) {
+                this.confirmCheckoutModal = false;
+                this.identityModal = true;
+                return;
+            }
+
             if (this.checkoutLoading || this.cart.length === 0) {
                 return;
             }
@@ -955,6 +1032,13 @@ function kasirPage(categories, products) {
                 const data = await response.json();
 
                 if (!response.ok) {
+                    if (data.identity_required) {
+                        this.employeeReady = false;
+                        this.confirmCheckoutModal = false;
+                        window.location.href = "/home";
+                        return;
+                    }
+
                     throw new Error(
                         data.message ||
                             Object.values(data.errors || {})

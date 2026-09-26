@@ -1030,6 +1030,7 @@ body.kasir-hold-modal *:not(input):not(textarea) {
         width: 100%;
         text-align: center;
     }
+}
 
 @media (max-width: 480px) {
     .checkout-footer {
@@ -1216,4 +1217,307 @@ body.kasir-hold-modal *:not(input):not(textarea) {
 
 .sortable-drag {
     opacity: 1;
+}
+
+.identity-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+
+    padding: 0;
+
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+}
+
+.identity-backdrop {
+    position: absolute;
+    inset: 0;
+
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+
+    animation: identityBackdropIn 0.32s ease both;
+}
+
+.identity-card {
+    position: relative;
+    z-index: 1;
+
+    width: 100%;
+    max-width: 460px;
+
+    display: flex;
+    flex-direction: column;
+
+    padding: 10px 20px 28px;
+
+    background: color-mix(in srgb, var(--card) 88%, transparent);
+    color: var(--text);
+
+    border: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+    border-bottom: 0;
+    border-radius: 28px 28px 0 0;
+
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.22);
+
+    backdrop-filter: blur(28px) saturate(1.4);
+    -webkit-backdrop-filter: blur(28px) saturate(1.4);
+
+    animation: identitySheetIn 0.48s cubic-bezier(0.22, 1.1, 0.36, 1) both;
+}
+
+.identity-grabber {
+    width: 36px;
+    height: 5px;
+    margin: 6px auto 18px;
+
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+
+.identity-title {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    text-align: center;
+}
+
+.identity-subtitle {
+    margin-top: 8px;
+
+    font-size: 15px;
+    line-height: 1.4;
+    text-align: center;
+
+    color: var(--text);
+    opacity: 0.55;
+}
+
+.identity-form {
+    margin-top: 22px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.identity-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+
+    color: var(--text);
+    opacity: 0.55;
+}
+
+.identity-select-wrap {
+    position: relative;
+}
+
+.identity-select {
+    width: 100%;
+    height: 52px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 0 40px 0 16px;
+
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 500;
+    text-align: left;
+
+    color: color-mix(in srgb, var(--text) 38%, transparent);
+    background: color-mix(in srgb, var(--hover) 80%, var(--card));
+
+    border: 0;
+    border-radius: 14px;
+
+    outline: none;
+}
+
+.identity-select.is-selected {
+    color: var(--text);
+}
+
+.identity-select-wrap::after {
+    content: "";
+    position: absolute;
+    top: 26px;
+    right: 18px;
+
+    width: 8px;
+    height: 8px;
+
+    border-right: 1.5px solid color-mix(in srgb, var(--text) 40%, transparent);
+    border-bottom: 1.5px solid color-mix(in srgb, var(--text) 40%, transparent);
+
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+}
+
+.identity-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    z-index: 2;
+
+    max-height: 220px;
+    overflow-y: auto;
+
+    padding: 6px;
+
+    background: var(--card);
+    border-radius: 16px;
+
+    box-shadow:
+        0 12px 40px rgba(0, 0, 0, 0.12),
+        0 0 0 1px color-mix(in srgb, var(--text) 6%, transparent);
+}
+
+.identity-menu[x-cloak] {
+    display: none !important;
+}
+
+.identity-option {
+    width: 100%;
+    min-height: 44px;
+
+    display: flex;
+    align-items: center;
+
+    padding: 10px 12px;
+
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: left;
+
+    color: var(--text);
+    background: transparent;
+
+    border: 0;
+    border-radius: 10px;
+}
+
+.identity-option.is-selected,
+.identity-option:hover {
+    background: var(--hover);
+}
+
+.identity-continue {
+    height: 52px;
+    margin-top: 6px;
+
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+
+    color: #fff;
+    background: #111;
+
+    border: 0;
+    border-radius: 14px;
+}
+
+.identity-continue:active {
+    transform: scale(0.98);
+}
+
+.identity-continue:disabled {
+    opacity: 0.35;
+}
+
+.identity-error {
+    margin-top: 16px;
+
+    padding: 12px 14px;
+
+    font-size: 14px;
+    line-height: 1.4;
+    text-align: center;
+
+    color: #ff3b30;
+    background: rgba(255, 59, 48, 0.1);
+    border-radius: 12px;
+}
+
+.identity-empty {
+    margin-top: 18px;
+    padding: 16px;
+
+    text-align: center;
+    font-size: 15px;
+
+    color: var(--text);
+    opacity: 0.6;
+}
+
+@keyframes identityBackdropIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes identitySheetIn {
+    from {
+        opacity: 0;
+        transform: translateY(110%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (min-width: 640px) {
+    .identity-overlay {
+        align-items: center;
+        padding: 24px;
+    }
+
+    .identity-card {
+        border-bottom: 1px solid color-mix(in srgb, var(--text) 8%, transparent);
+        border-radius: 28px;
+        padding: 18px 24px 24px;
+
+        animation-name: identityCardIn;
+    }
+
+    .identity-grabber {
+        display: none;
+    }
+}
+
+@keyframes identityCardIn {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.96);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .identity-backdrop,
+    .identity-card {
+        animation: none;
+    }
 }

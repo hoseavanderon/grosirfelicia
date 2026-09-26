@@ -50,6 +50,8 @@
 
     </div>
 
+    @stack('overlays')
+
     <script src="{{ asset('js/app.js') }}"></script>
     <script src="{{ asset('js/pwa-register.js') }}"></script>
 

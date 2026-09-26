@@ -3,6 +3,7 @@
 use App\Http\Controllers\BarangMasukController;
 use App\Http\Controllers\CekStokController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\EmployeeIdentityController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\JejakProdukController;
 use App\Http\Controllers\LanggananController;
@@ -17,6 +18,9 @@ Route::get('/', fn () => redirect()->route('login'));
 Route::group(['middleware' => 'auth'], function () {
     Route::get('/home', [HomeController::class, 'index'])
         ->name('home');
+
+    Route::post('/kasir/employee', [EmployeeIdentityController::class, 'store'])
+        ->name('kasir.employee.store');
     Route::post('/products/reorder', [HomeController::class, 'reorder']
         )->name('products.reorder');
 
@@ -49,6 +53,14 @@ Route::group(['middleware' => 'auth'], function () {
     Route::patch('/transactions/{id}/payment', [RiwayatTransaksiController::class, 'updatePayment'])
         ->whereNumber('id')
         ->name('transactions.payment.update');
+
+    Route::patch('/transactions/{id}/created-by', [RiwayatTransaksiController::class, 'updateCreatedBy'])
+        ->whereNumber('id')
+        ->name('transactions.created-by.update');
+
+    Route::patch('/transactions/{id}/delivered-by', [RiwayatTransaksiController::class, 'updateDeliveredBy'])
+        ->whereNumber('id')
+        ->name('transactions.delivered-by.update');
 
     Route::get('/barang-masuk', [BarangMasukController::class, 'index'])
         ->name('barang.masuk');

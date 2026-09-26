@@ -1,4 +1,4 @@
-function transaksiPage() {
+function transaksiPage(employees = []) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -15,6 +15,13 @@ function transaksiPage() {
         selectedTransaction: null,
         paymentMenuOpen: null,
         paymentUpdating: null,
+        creatorMenuOpen: null,
+        delivererMenuOpen: null,
+        creatorUpdating: null,
+        delivererUpdating: null,
+        staffErrorId: null,
+        staffError: "",
+        employees: Array.isArray(employees) ? employees : [],
         depositingDate: null,
         confirmModalOpen: false,
         confirmMessage: "",
@@ -855,6 +862,8 @@ function transaksiPage() {
 
         openDetail(transaction) {
             this.paymentMenuOpen = null;
+            this.creatorMenuOpen = null;
+            this.delivererMenuOpen = null;
             this.exitEditMode();
             this.selectedTransaction = transaction;
             this.detailModalOpen = true;
@@ -875,6 +884,8 @@ function transaksiPage() {
                 return;
             }
 
+            this.creatorMenuOpen = null;
+            this.delivererMenuOpen = null;
             this.paymentMenuOpen =
                 this.paymentMenuOpen === transactionId ? null : transactionId;
         },
@@ -982,6 +993,156 @@ function transaksiPage() {
                 console.error(error);
             } finally {
                 this.paymentUpdating = null;
+            }
+        },
+
+        closeStaffMenus() {
+            this.creatorMenuOpen = null;
+            this.delivererMenuOpen = null;
+        },
+
+        toggleCreatorMenu(transactionId) {
+            const next =
+                this.creatorMenuOpen === transactionId ? null : transactionId;
+
+            this.paymentMenuOpen = null;
+            this.delivererMenuOpen = null;
+            this.creatorMenuOpen = next;
+        },
+
+        closeCreatorMenu() {
+            this.creatorMenuOpen = null;
+        },
+
+        toggleDelivererMenu(transactionId) {
+            const next =
+                this.delivererMenuOpen === transactionId ? null : transactionId;
+
+            this.paymentMenuOpen = null;
+            this.creatorMenuOpen = null;
+            this.delivererMenuOpen = next;
+        },
+
+        closeDelivererMenu() {
+            this.delivererMenuOpen = null;
+        },
+
+        applyStaffUpdate(transaction, fields) {
+            Object.assign(transaction, fields);
+
+            if (Number(this.selectedTransaction?.id) === Number(transaction.id)) {
+                Object.assign(this.selectedTransaction, fields);
+            }
+        },
+
+        async updateCreatedBy(transaction, employeeId) {
+            if (this.creatorUpdating === transaction.id) {
+                return;
+            }
+
+            this.creatorMenuOpen = null;
+            this.creatorUpdating = transaction.id;
+            this.staffErrorId = null;
+            this.staffError = "";
+
+            try {
+                const response = await fetch(
+                    `/transactions/${transaction.id}/created-by`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            Accept: "application/json",
+                            "Content-Type": "application/json",
+                            "X-CSRF-TOKEN": this.csrfToken(),
+                        },
+                        body: JSON.stringify({
+                            employee_id: employeeId,
+                        }),
+                    },
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message || "Gagal menyimpan pembuat nota",
+                    );
+                }
+
+                this.applyStaffUpdate(transaction, {
+                    created_by_employee_id: data.created_by_employee_id,
+                    created_by_employee_name: data.created_by_employee_name,
+                });
+                this.showToast(
+                    "success",
+                    "Berhasil",
+                    `Pembuat nota diubah menjadi ${data.created_by_employee_name}`,
+                );
+            } catch (error) {
+                const message =
+                    error.message || "Gagal menyimpan pembuat nota";
+
+                this.staffErrorId = transaction.id;
+                this.staffError = message;
+                this.showToast("error", "Gagal", message);
+            } finally {
+                this.creatorUpdating = null;
+            }
+        },
+
+        async updateDeliveredBy(transaction, employeeId) {
+            if (this.delivererUpdating === transaction.id) {
+                return;
+            }
+
+            this.delivererMenuOpen = null;
+            this.delivererUpdating = transaction.id;
+            this.staffErrorId = null;
+            this.staffError = "";
+
+            try {
+                const response = await fetch(
+                    `/transactions/${transaction.id}/delivered-by`,
+                    {
+                        method: "PATCH",
+                        headers: {
+                            Accept: "application/json",
+                            "Content-Type": "application/json",
+                            "X-CSRF-TOKEN": this.csrfToken(),
+                        },
+                        body: JSON.stringify({
+                            employee_id: employeeId,
+                        }),
+                    },
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(
+                        data.message || "Gagal menyimpan pengantar",
+                    );
+                }
+
+                this.applyStaffUpdate(transaction, {
+                    delivered_by_employee_id: data.delivered_by_employee_id,
+                    delivered_by_employee_name: data.delivered_by_employee_name,
+                });
+                this.showToast(
+                    "success",
+                    "Berhasil",
+                    data.delivered_by_employee_name
+                        ? `Pengantar diubah menjadi ${data.delivered_by_employee_name}`
+                        : "Pengantar dihapus",
+                );
+            } catch (error) {
+                const message = error.message || "Gagal menyimpan pengantar";
+
+                this.staffErrorId = transaction.id;
+                this.staffError = message;
+                this.showToast("error", "Gagal", message);
+            } finally {
+                this.delivererUpdating = null;
             }
         },
 

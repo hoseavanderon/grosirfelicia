@@ -15,6 +15,8 @@ class Transaction extends Model
     protected $fillable = [
         'customer_id',
         'user_id',
+        'created_by_employee_id',
+        'delivered_by_employee_id',
         'nomor_nota',
         'metode_pembayaran',
     ];

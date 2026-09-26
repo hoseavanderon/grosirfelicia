@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Concerns\FormatsTransactions;
+use App\Models\Employee;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,14 @@ class RiwayatTransaksiController extends Controller
 
     public function index()
     {
-        return view('pages.transaksi.index');
+        $employees = Employee::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return view('pages.transaksi.index', [
+            'employees' => $employees,
+        ]);
     }
 
     public function list(Request $request)
@@ -21,6 +29,8 @@ class RiwayatTransaksiController extends Controller
         $query = Transaction::query()
             ->with([
                 'customer',
+                'createdByEmployee',
+                'deliveredByEmployee',
                 'detailTransactions.detailProduct.product',
             ])
             ->where('user_id', Auth::id());
@@ -77,6 +87,82 @@ class RiwayatTransaksiController extends Controller
         return response()->json([
             'success' => true,
             'transaction' => $this->formatPaymentPayload($transaction),
+        ]);
+    }
+
+    public function updateCreatedBy(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'employee_id' => ['required', 'integer'],
+        ]);
+
+        $employee = Employee::query()
+            ->whereKey($validated['employee_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Pegawai tidak ditemukan atau sudah tidak aktif.',
+            ], 422);
+        }
+
+        $transaction = Transaction::query()
+            ->where('user_id', Auth::id())
+            ->findOrFail($id);
+
+        $transaction->update([
+            'created_by_employee_id' => $employee->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'created_by_employee_id' => $employee->id,
+            'created_by_employee_name' => $employee->name,
+        ]);
+    }
+
+    public function updateDeliveredBy(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'employee_id' => ['nullable', 'integer'],
+        ]);
+
+        $transaction = Transaction::query()
+            ->where('user_id', Auth::id())
+            ->findOrFail($id);
+
+        if ($validated['employee_id'] === null) {
+            $transaction->update([
+                'delivered_by_employee_id' => null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'delivered_by_employee_id' => null,
+                'delivered_by_employee_name' => null,
+            ]);
+        }
+
+        $employee = Employee::query()
+            ->whereKey($validated['employee_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (! $employee) {
+            return response()->json([
+                'message' => 'Pegawai tidak ditemukan atau sudah tidak aktif.',
+            ], 422);
+        }
+
+        $transaction->update([
+            'delivered_by_employee_id' => $employee->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'delivered_by_employee_id' => $employee->id,
+            'delivered_by_employee_name' => $employee->name,
         ]);
     }
 

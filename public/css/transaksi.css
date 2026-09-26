@@ -189,6 +189,175 @@
     color: #86efac;
 }
 
+.transaction-staff {
+    margin-top: 12px;
+    padding-top: 10px;
+
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    border-top: 1px solid var(--border);
+}
+
+.transaction-staff-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+
+    min-width: 0;
+}
+
+.transaction-staff-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    min-width: 0;
+}
+
+.transaction-staff-icon {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+
+    color: var(--text);
+    opacity: 0.55;
+}
+
+.transaction-staff-copy {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+
+    min-width: 0;
+}
+
+.transaction-staff-label {
+    flex-shrink: 0;
+
+    font-size: 11px;
+    font-weight: 600;
+
+    color: var(--text);
+    opacity: 0.5;
+}
+
+.transaction-staff-name {
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.transaction-staff-name.is-empty {
+    font-weight: 500;
+    opacity: 0.55;
+}
+
+.staff-menu-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.staff-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    height: 28px;
+    max-width: 132px;
+    padding: 0 10px;
+
+    border: 1px solid var(--border);
+    border-radius: 999px;
+
+    background: var(--card);
+    color: var(--text);
+
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+
+    cursor: pointer;
+}
+
+.staff-edit-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.staff-edit-btn:hover {
+    background: var(--hover);
+}
+
+.staff-edit-btn.is-open {
+    border-color: color-mix(in srgb, var(--text) 18%, var(--border));
+}
+
+.staff-edit-btn.is-updating {
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+.staff-edit-chevron {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+
+    transition: transform 0.2s ease;
+}
+
+.staff-edit-btn.is-open .staff-edit-chevron {
+    transform: rotate(180deg);
+}
+
+.staff-dropdown {
+    min-width: 180px;
+    max-width: min(240px, 70vw);
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.staff-dropdown-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.staff-dropdown-empty,
+.staff-dropdown-clear {
+    color: color-mix(in srgb, var(--text) 62%, transparent);
+}
+
+.transaction-staff-error {
+    margin: 0;
+
+    font-size: 11px;
+    line-height: 1.35;
+    color: #b91c1c;
+}
+
+@media (max-width: 480px) {
+    .transaction-staff-copy {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1px;
+    }
+
+    .staff-edit-btn {
+        max-width: 118px;
+    }
+}
+
 .date-group-header {
     display: flex;
     align-items: center;

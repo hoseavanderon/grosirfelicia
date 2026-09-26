@@ -48,6 +48,10 @@ trait FormatsTransactions
             'status' => $payment['copy_status'],
             'status_label' => $payment['label'],
             'status_class' => $payment['class'],
+            'created_by_employee_id' => $transaction->created_by_employee_id,
+            'created_by_employee_name' => $transaction->createdByEmployee?->name,
+            'delivered_by_employee_id' => $transaction->delivered_by_employee_id,
+            'delivered_by_employee_name' => $transaction->deliveredByEmployee?->name,
             // Detail/batch-level rows — used by edit mode / stock-aware UI.
             'items' => $items,
             // Product-level rows — used by receipt modal, print, and WhatsApp.

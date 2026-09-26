@@ -10,8 +10,12 @@
 
     <div x-data="kasirPage(
         @js($categories),
-        @js($products)
-    )" class="kasir-page">
+        @js($products),
+        @js([
+            'ready' => $employeeIdentityReady,
+            'employees' => $employees,
+        ])
+    )" class="kasir-page" @keydown.escape.window="keepIdentityModal($event)">
 
         {{-- Kategori --}}
         <div class="kasir-toolbar">
@@ -319,7 +323,8 @@
 
                     </div>
 
-                    <button @click="openConfirmCheckout()" class="checkout-btn" :disabled="cart.length === 0">
+                    <button @click="openConfirmCheckout()" class="checkout-btn"
+                        :disabled="cart.length === 0 || !employeeReady">
                         Checkout
                     </button>
 
@@ -336,6 +341,63 @@
     </div>
 
 @endsection
+
+@unless ($employeeIdentityReady)
+    @push('overlays')
+        <div class="identity-overlay" role="dialog" aria-modal="true" aria-labelledby="identity-modal-title">
+
+            <div class="identity-backdrop"></div>
+
+            <div class="identity-card">
+
+                <div class="identity-grabber" aria-hidden="true"></div>
+
+                <h2 id="identity-modal-title" class="identity-title">LO SIAPE?</h2>
+
+                <p class="identity-subtitle">Pilih nama Anda untuk menggunakan kasir.</p>
+
+                @if (session('identity_error'))
+                    <p class="identity-error">{{ session('identity_error') }}</p>
+                @endif
+
+                @if ($employees->isEmpty())
+                    <p class="identity-empty">Tidak ada pegawai aktif.</p>
+                @else
+                    <form method="POST" action="{{ route('kasir.employee.store') }}" class="identity-form"
+                        x-data="{ open: false, id: '', name: '' }" @click.outside="open = false">
+                        @csrf
+
+                        <input type="hidden" name="employee_id" :value="id">
+
+                        <label class="identity-label" id="identity-employee-label">Nama pegawai</label>
+
+                        <div class="identity-select-wrap">
+                            <button type="button" class="identity-select" :class="name ? 'is-selected' : ''"
+                                @click="open = !open" aria-haspopup="listbox" :aria-expanded="open"
+                                aria-labelledby="identity-employee-label">
+                                <span x-text="name || 'Pilih nama'"></span>
+                            </button>
+
+                            <div class="identity-menu" x-show="open" x-cloak x-transition.origin.top role="listbox">
+                                @foreach ($employees as $employee)
+                                    <button type="button" class="identity-option" role="option"
+                                        :class="id === '{{ $employee->id }}' ? 'is-selected' : ''"
+                                        @click="id = '{{ $employee->id }}'; name = {{ \Illuminate\Support\Js::from($employee->name) }}; open = false">
+                                        {{ $employee->name }}
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <button type="submit" class="identity-continue" :disabled="id === ''">Lanjutkan</button>
+                    </form>
+                @endif
+
+            </div>
+
+        </div>
+    @endpush
+@endunless
 
 @push('scripts')
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>

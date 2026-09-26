@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\FormatsTransactions;
 use App\Models\Customer;
 use App\Models\DetailProduct;
 use App\Models\DetailTransaction;
+use App\Models\Employee;
 use App\Models\Transaction;
 use App\Services\JejakProdukService;
 use App\Services\ProductStockService;
@@ -35,14 +36,26 @@ class TransactionController extends Controller
 
         $userId = Auth::id();
 
+        $employee = $this->activeSessionEmployee($request);
+
+        if (! $employee) {
+            $request->session()->forget('employee_id');
+
+            return response()->json([
+                'message' => 'Identitas pegawai tidak valid. Pilih nama Anda kembali.',
+                'identity_required' => true,
+            ], 422);
+        }
+
         Customer::query()
             ->where('user_id', $userId)
             ->findOrFail($validated['customer_id']);
 
-        $transaction = DB::transaction(function () use ($validated, $userId) {
+        $transaction = DB::transaction(function () use ($validated, $userId, $employee) {
             $transaction = Transaction::create([
                 'customer_id' => $validated['customer_id'],
                 'user_id' => $userId,
+                'created_by_employee_id' => $employee->id,
                 'nomor_nota' => $this->generateNomorNota(),
                 'metode_pembayaran' => 'belum_bayar',
             ]);
@@ -248,6 +261,20 @@ class TransactionController extends Controller
         );
 
         $this->productStockService->markNeedsStockCheck($detailProduct->product_id);
+    }
+
+    private function activeSessionEmployee(Request $request): ?Employee
+    {
+        $employeeId = $request->session()->get('employee_id');
+
+        if (! is_numeric($employeeId)) {
+            return null;
+        }
+
+        return Employee::query()
+            ->whereKey((int) $employeeId)
+            ->where('is_active', true)
+            ->first();
     }
 
     private function generateNomorNota(): string
