@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Employee;
 
 class Transaction extends Model
 {
@@ -31,5 +32,15 @@ class Transaction extends Model
     public function detailTransactions()
     {
         return $this->hasMany(DetailTransaction::class);
+    }
+
+    public function createdByEmployee()
+    {
+        return $this->belongsTo(Employee::class, 'created_by_employee_id');
+    }
+
+    public function deliveredByEmployee()
+    {
+        return $this->belongsTo(Employee::class, 'delivered_by_employee_id');
     }
 }
