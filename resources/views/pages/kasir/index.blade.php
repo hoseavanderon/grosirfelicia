@@ -12,9 +12,9 @@
         @js($categories),
         @js($products),
         @js([
-            'ready' => $employeeIdentityReady,
-            'employees' => $employees,
-        ])
+    'ready' => $employeeIdentityReady,
+    'employees' => $employees,
+])
     )" class="kasir-page" @keydown.escape.window="keepIdentityModal($event)">
 
         {{-- Kategori --}}
@@ -44,8 +44,7 @@
 
                         <template x-for="category in categories" :key="category.label">
 
-                            <button type="button" @click="selectCategory(category)"
-                                class="category-item"
+                            <button type="button" @click="selectCategory(category)" class="category-item"
                                 :class="selectedCategory.label === category.label ? 'is-active' : ''">
 
                                 <span x-text="category.label"></span>
@@ -112,18 +111,11 @@
                     {{-- DETAIL PRODUCT --}}
                     <template x-for="detail in product.details.filter(d => d.stock > 0)" :key="detail.id">
 
-                        <div class="product-detail"
-                            @mousedown="startHold({ ...product, ...detail }, $event)"
-                            @mouseup="cancelHold()"
-                            @mouseleave="cancelHold()"
-                            @touchstart="startHold({ ...product, ...detail }, $event)"
-                            @touchmove="onHoldTouchMove($event)"
-                            @touchend="cancelHold()"
-                            @touchcancel="cancelHold()"
-                            @contextmenu.prevent
-                            @selectstart.prevent
-                            @dragstart.prevent
-                            @click="handleProductClick({ ...product, ...detail })">
+                        <div class="product-detail" @mousedown="startHold({ ...product, ...detail }, $event)"
+                            @mouseup="cancelHold()" @mouseleave="cancelHold()"
+                            @touchstart="startHold({ ...product, ...detail }, $event)" @touchmove="onHoldTouchMove($event)"
+                            @touchend="cancelHold()" @touchcancel="cancelHold()" @contextmenu.prevent @selectstart.prevent
+                            @dragstart.prevent @click="handleProductClick({ ...product, ...detail })">
 
                             {{-- Expired --}}
                             <div class="batch-exp">
@@ -220,9 +212,8 @@
                         Jumlah (Pcs)
                     </label>
 
-                    <input x-model="qty" x-ref="qtyInput" value="0" autocomplete="off"
-                        autocorrect="off" autocapitalize="off" spellcheck="false"
-                        @keydown="onQtyDigitKeydown" @keydown.enter="addToCart"
+                    <input x-model="qty" x-ref="qtyInput" value="0" autocomplete="off" autocorrect="off"
+                        autocapitalize="off" spellcheck="false" @keydown="onQtyDigitKeydown" @keydown.enter="addToCart"
                         type="text" inputmode="numeric" enterkeyhint="done" class="qty-input" />
 
                 </div>
@@ -348,13 +339,16 @@
 
             <div class="identity-backdrop"></div>
 
-            <div class="identity-card">
+            <div class="identity-card" x-data="identityPrompt(@js($employees))" x-cloak @click.outside="open = false">
 
                 <div class="identity-grabber" aria-hidden="true"></div>
 
-                <h2 id="identity-modal-title" class="identity-title">LO SIAPE?</h2>
+                <h2 id="identity-modal-title" class="identity-title"
+                    x-text="mode === 'confirm' ? `Lo ${rememberedName} kan???` : 'LO SIAPE?'">LO SIAPE?</h2>
 
-                <p class="identity-subtitle">Pilih nama Anda untuk menggunakan kasir.</p>
+                <p class="identity-subtitle"
+                    x-text="mode === 'confirm' ? 'Tekan OK kalau ini memang Anda.' : 'Pilih nama mu cok.'">
+                    Pilih nama mu cok.</p>
 
                 @if (session('identity_error'))
                     <p class="identity-error">{{ session('identity_error') }}</p>
@@ -364,32 +358,39 @@
                     <p class="identity-empty">Tidak ada pegawai aktif.</p>
                 @else
                     <form method="POST" action="{{ route('kasir.employee.store') }}" class="identity-form"
-                        x-data="{ open: false, id: '', name: '' }" @click.outside="open = false">
+                        @submit="remember()">
                         @csrf
 
                         <input type="hidden" name="employee_id" :value="id">
 
-                        <label class="identity-label" id="identity-employee-label">Nama pegawai</label>
-
-                        <div class="identity-select-wrap">
-                            <button type="button" class="identity-select" :class="name ? 'is-selected' : ''"
-                                @click="open = !open" aria-haspopup="listbox" :aria-expanded="open"
-                                aria-labelledby="identity-employee-label">
-                                <span x-text="name || 'Pilih nama'"></span>
-                            </button>
-
-                            <div class="identity-menu" x-show="open" x-cloak x-transition.origin.top role="listbox">
-                                @foreach ($employees as $employee)
-                                    <button type="button" class="identity-option" role="option"
-                                        :class="id === '{{ $employee->id }}' ? 'is-selected' : ''"
-                                        @click="id = '{{ $employee->id }}'; name = {{ \Illuminate\Support\Js::from($employee->name) }}; open = false">
-                                        {{ $employee->name }}
-                                    </button>
-                                @endforeach
-                            </div>
+                        <div x-show="mode === 'confirm'" class="identity-actions">
+                            <button type="submit" class="identity-continue" :disabled="mode !== 'confirm'">OK</button>
+                            <button type="button" class="identity-decline" @click="decline()">Tidak</button>
                         </div>
 
-                        <button type="submit" class="identity-continue" :disabled="id === ''">Lanjutkan</button>
+                        <div x-show="mode === 'pick'" class="identity-pick">
+                            <label class="identity-label" id="identity-employee-label">Nama orang </label>
+
+                            <div class="identity-select-wrap">
+                                <button type="button" class="identity-select" :class="name ? 'is-selected' : ''"
+                                    @click="open = !open" aria-haspopup="listbox" :aria-expanded="open"
+                                    aria-labelledby="identity-employee-label">
+                                    <span x-text="name || 'Pilih nama'"></span>
+                                </button>
+
+                                <div class="identity-menu" x-show="open" x-cloak x-transition.origin.top role="listbox">
+                                    @foreach ($employees as $employee)
+                                        <button type="button" class="identity-option" role="option"
+                                            :class="id === '{{ $employee->id }}' ? 'is-selected' : ''"
+                                            @click="id = '{{ $employee->id }}'; name = {{ \Illuminate\Support\Js::from($employee->name) }}; open = false">
+                                            {{ $employee->name }}
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+
+                            <button type="submit" class="identity-continue" :disabled="mode !== 'pick' || id === ''">Lanjutkan</button>
+                        </div>
                     </form>
                 @endif
 

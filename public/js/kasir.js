@@ -1,3 +1,73 @@
+const cashierEmployeeStorageKey = "grosirfelicia.cashier-employee";
+
+function identityPrompt(employees) {
+    const list = Array.isArray(employees) ? employees : [];
+
+    return {
+        mode: "pick",
+        open: false,
+        id: "",
+        name: "",
+        rememberedName: "",
+
+        init() {
+            let saved = null;
+
+            try {
+                saved = JSON.parse(
+                    localStorage.getItem(cashierEmployeeStorageKey) || "null",
+                );
+            } catch (error) {
+                saved = null;
+            }
+
+            const match = list.find(
+                (employee) => String(employee.id) === String(saved?.id),
+            );
+
+            if (!match) {
+                if (saved) {
+                    localStorage.removeItem(cashierEmployeeStorageKey);
+                }
+
+                return;
+            }
+
+            this.mode = "confirm";
+            this.id = String(match.id);
+            this.name = match.name;
+            this.rememberedName = match.name;
+        },
+
+        remember() {
+            if (this.id === "" || this.name === "") {
+                return;
+            }
+
+            try {
+                localStorage.setItem(
+                    cashierEmployeeStorageKey,
+                    JSON.stringify({
+                        id: String(this.id),
+                        name: this.name,
+                    }),
+                );
+            } catch (error) {}
+        },
+
+        decline() {
+            try {
+                localStorage.removeItem(cashierEmployeeStorageKey);
+            } catch (error) {}
+            this.mode = "pick";
+            this.id = "";
+            this.name = "";
+            this.rememberedName = "";
+            this.open = false;
+        },
+    };
+}
+
 function kasirPage(categories, products, employeeIdentity = {}) {
     const identityEmployees = Array.isArray(employeeIdentity.employees)
         ? employeeIdentity.employees

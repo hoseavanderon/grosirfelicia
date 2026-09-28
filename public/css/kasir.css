@@ -1244,6 +1244,10 @@ body.kasir-hold-modal *:not(input):not(textarea) {
     animation: identityBackdropIn 0.32s ease both;
 }
 
+.identity-card[x-cloak] {
+    display: none !important;
+}
+
 .identity-card {
     position: relative;
     z-index: 1;
@@ -1435,6 +1439,39 @@ body.kasir-hold-modal *:not(input):not(textarea) {
 
 .identity-continue:disabled {
     opacity: 0.35;
+}
+
+.identity-actions,
+.identity-pick {
+    display: flex;
+    flex-direction: column;
+}
+
+.identity-actions {
+    gap: 8px;
+}
+
+.identity-pick {
+    gap: 12px;
+}
+
+.identity-decline {
+    height: 52px;
+
+    font-family: inherit;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+
+    color: var(--text);
+    background: color-mix(in srgb, var(--hover) 80%, var(--card));
+
+    border: 0;
+    border-radius: 14px;
+}
+
+.identity-decline:active {
+    transform: scale(0.98);
 }
 
 .identity-error {
