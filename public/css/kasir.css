@@ -1484,6 +1484,23 @@ body.kasir-hold-modal *:not(input):not(textarea) {
     }
 }
 
+@media (max-width: 639px) {
+    .identity-card {
+        max-height: min(90dvh, 100%);
+        overflow-y: auto;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .identity-menu {
+        position: static;
+        top: auto;
+        left: auto;
+        right: auto;
+        max-height: min(260px, 42dvh);
+        margin-top: 8px;
+    }
+}
+
 @media (min-width: 640px) {
     .identity-overlay {
         align-items: center;
