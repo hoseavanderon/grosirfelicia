@@ -39,6 +39,8 @@ body {
     display: flex;
     min-height: 100vh;
     background: var(--bg);
+    gap: 12px;
+    padding: 12px;
     animation: fadeInSoft 0.45s ease-out both;
 }
 
@@ -90,19 +92,33 @@ body {
 
 .sidebar {
     width: 270px;
-    height: 100vh;
+    flex-shrink: 0;
+    height: calc(100vh - 24px);
+    height: calc(100dvh - 24px);
     animation: fadeInSoft 0.55s ease-out both;
 
     position: sticky;
-    top: 0;
+    top: 12px;
+    align-self: flex-start;
 
     background: var(--card);
-    border-right: 1px solid var(--border);
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 12px 32px rgba(15, 23, 42, 0.08);
 
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 
-    transition: 0.3s ease;
+    transition: width 0.3s ease, left 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .sidebar {
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.35),
+        0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
 .sidebar.collapsed {
@@ -189,8 +205,6 @@ body {
     background: var(--card);
     animation: fadeInSoft 0.6s ease-out both;
 
-    border-bottom: 1px solid var(--border);
-
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -198,9 +212,17 @@ body {
     padding: 0 24px;
 
     position: sticky;
-    top: 0;
+    top: 12px;
 
     z-index: 50;
+
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.dark .header {
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
 .header-right,
@@ -299,18 +321,31 @@ body {
 }
 
 @media (max-width: 1024px) {
+    .app-shell {
+        gap: 0;
+        padding: 0;
+    }
+
     .sidebar {
         position: fixed;
-
-        left: -280px;
-
-        top: 0;
-
+        top: 12px;
+        left: -300px;
+        height: calc(100vh - 24px);
+        height: calc(100dvh - 24px);
         z-index: 100;
     }
 
     .sidebar.show {
-        left: 0;
+        left: 12px;
+    }
+
+    .header {
+        top: 0;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        border-top: 0;
+        box-shadow: none;
     }
 }
 
