@@ -31,7 +31,13 @@ class RiwayatTransaksiController extends Controller
                 'customer',
                 'createdByEmployee',
                 'deliveredByEmployee',
-                'detailTransactions.detailProduct.product',
+                'detailTransactions.detailProduct' => function ($query) {
+                    $query->withTrashed()->with([
+                        'product' => function ($productQuery) {
+                            $productQuery->withTrashed();
+                        },
+                    ]);
+                },
             ])
             ->where('user_id', Auth::id());
 
