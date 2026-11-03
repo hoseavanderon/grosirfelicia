@@ -22,7 +22,7 @@
 
             <div class="kasir-toolbar-main">
                 <label class="kasir-label">
-                    Pilih Kategori
+                    Pilih Kategoris
                 </label>
 
                 <div class="category-select-wrapper" @click.outside="categoryOpen=false">
@@ -389,7 +389,8 @@
                                 </div>
                             </div>
 
-                            <button type="submit" class="identity-continue" :disabled="mode !== 'pick' || id === ''">Lanjutkan</button>
+                            <button type="submit" class="identity-continue"
+                                :disabled="mode !== 'pick' || id === ''">Lanjutkan</button>
                         </div>
                     </form>
                 @endif
