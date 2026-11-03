@@ -116,6 +116,8 @@ function kasirPage(categories, products, employeeIdentity = {}) {
         },
         selectedProduct: null,
 
+        expiryAlertOpen: true,
+
         categories: [
             {
                 label: "SEMUA PRODUK",
@@ -157,6 +159,38 @@ function kasirPage(categories, products, employeeIdentity = {}) {
 
         get canSortProducts() {
             return this.selectedCategory.category_id !== null;
+        },
+
+        get expiringItems() {
+            const items = [];
+
+            for (const product of this.products) {
+                for (const detail of product.details || []) {
+                    if (!detail.expiring_soon || !(detail.stock > 0)) {
+                        continue;
+                    }
+
+                    items.push({
+                        id: detail.id,
+                        name: product.name,
+                        exp: detail.exp_label || detail.exp,
+                        stock: detail.stock,
+                        expired_at: detail.expired_at || "",
+                    });
+                }
+            }
+
+            return items.sort((a, b) => {
+                const byDate = String(a.expired_at).localeCompare(
+                    String(b.expired_at),
+                );
+
+                if (byDate !== 0) {
+                    return byDate;
+                }
+
+                return String(a.name).localeCompare(String(b.name));
+            });
         },
 
         init() {

@@ -49,7 +49,10 @@ class HomeController extends Controller
             })
             ->values();
 
-       $products = Product::query()
+        $expiryStart = now()->startOfDay();
+        $expiryEnd = $expiryStart->copy()->addMonths(2);
+
+        $products = Product::query()
             ->with([
                 'detailProducts' => function ($query) {
                     $query->where('stok', '>', 0)
@@ -62,7 +65,7 @@ class HomeController extends Controller
             ->where('user_id', $userId)
             ->orderBy('sort_order')
             ->get()
-            ->map(function ($product) {
+            ->map(function ($product) use ($expiryStart, $expiryEnd) {
 
                 return [
 
@@ -86,7 +89,9 @@ class HomeController extends Controller
 
                     'details' => $product
                         ->detailProducts
-                        ->map(function ($detail) {
+                        ->map(function ($detail) use ($expiryStart, $expiryEnd) {
+                            $expired = $detail->expired;
+                            $expiredDay = $expired?->copy()->startOfDay();
 
                             return [
 
@@ -94,9 +99,15 @@ class HomeController extends Controller
 
                                 'stock' => $detail->stok,
 
-                                'exp' => optional(
-                                    $detail->expired
-                                )->format('d/m'),
+                                'exp' => optional($expired)->format('d/m'),
+
+                                'exp_label' => optional($expired)->format('d/m/Y'),
+
+                                'expired_at' => optional($expired)->format('Y-m-d'),
+
+                                'expiring_soon' => $expiredDay !== null
+                                    && $expiredDay->greaterThanOrEqualTo($expiryStart)
+                                    && $expiredDay->lessThanOrEqualTo($expiryEnd),
 
                             ];
 

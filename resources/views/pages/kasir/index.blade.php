@@ -20,9 +20,49 @@
         {{-- Kategori --}}
         <div class="kasir-toolbar">
 
+            <div x-show="expiryAlertOpen && expiringItems.length > 0" x-cloak class="expiry-alert" role="alert">
+
+                <div class="expiry-alert-top">
+
+                    <p class="expiry-alert-title">
+                        Barang mau expired
+                        <span class="expiry-alert-count" x-text="expiringItems.length"></span>
+                    </p>
+
+                    <button type="button" class="expiry-alert-close" @click="expiryAlertOpen = false"
+                        aria-label="Tutup pengingat expired">
+                        ✕
+                    </button>
+
+                </div>
+
+                <p class="expiry-alert-note">Dalam 2 bulan ke depan</p>
+
+                <ul class="expiry-alert-list">
+
+                    <template x-for="item in expiringItems" :key="item.id">
+
+                        <li class="expiry-alert-item">
+
+                            <span class="expiry-alert-name" x-text="item.name"></span>
+
+                            <span class="expiry-alert-meta">
+                                Exp <span x-text="item.exp"></span>
+                                ·
+                                <span x-text="item.stock"></span> pcs
+                            </span>
+
+                        </li>
+
+                    </template>
+
+                </ul>
+
+            </div>
+
             <div class="kasir-toolbar-main">
                 <label class="kasir-label">
-                    Pilih Kategoris
+                    Pilih Kategori
                 </label>
 
                 <div class="category-select-wrapper" @click.outside="categoryOpen=false">
@@ -118,7 +158,7 @@
                             @dragstart.prevent @click="handleProductClick({ ...product, ...detail })">
 
                             {{-- Expired --}}
-                            <div class="batch-exp">
+                            <div class="batch-exp" :class="detail.expiring_soon ? 'is-expiring' : ''">
 
                                 <span class="batch-exp-label">Exp</span>
                                 <span x-text="detail.exp"></span>
