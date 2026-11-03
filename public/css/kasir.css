@@ -130,13 +130,40 @@
 }
 
 .expiry-alert-list {
-    max-height: 168px;
+    max-height: 240px;
     margin: 0;
-    padding: 0;
+    padding: 0 2px 0 0;
 
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #e11d48 transparent;
 
     list-style: none;
+}
+
+.expiry-alert-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+.expiry-alert-list::-webkit-scrollbar-track {
+    margin: 4px 0;
+
+    background: rgba(225, 29, 72, 0.08);
+    border-radius: 999px;
+}
+
+.expiry-alert-list::-webkit-scrollbar-thumb {
+    background-color: #e11d48;
+    background-clip: content-box;
+
+    border: 2px solid transparent;
+    border-radius: 999px;
+}
+
+.expiry-alert-list::-webkit-scrollbar-thumb:hover {
+    background-color: #be123c;
 }
 
 .expiry-alert-item {
@@ -145,15 +172,55 @@
     align-items: flex-start;
     gap: 2px;
 
-    padding: 8px 0;
+    padding: 8px 8px 8px 0;
 
     border-top: 1px solid rgba(220, 38, 38, 0.16);
 }
 
+.expiry-alert-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px 10px;
+
+    width: 100%;
+}
+
 .expiry-alert-name {
+    min-width: 0;
+
     font-size: 13px;
     font-weight: 700;
     line-height: 1.35;
+}
+
+.expiry-alert-when {
+    flex: 0 0 auto;
+
+    padding: 3px 8px;
+
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+
+    color: #9f1239;
+    background: rgba(225, 29, 72, 0.1);
+    border-radius: 999px;
+}
+
+.expiry-alert-item.is-near .expiry-alert-when,
+.expiry-alert-item.is-soon .expiry-alert-when,
+.expiry-alert-item.is-critical .expiry-alert-when {
+    color: #ffffff;
+    background: #e11d48;
+}
+
+.expiry-alert-item.is-tomorrow .expiry-alert-when,
+.expiry-alert-item.is-now .expiry-alert-when {
+    color: #ffffff;
+    background: #b91c1c;
 }
 
 .expiry-alert-meta {
@@ -549,6 +616,31 @@
         background: #dc2626;
         box-shadow: inset 0 0 0 1px #b91c1c;
     }
+}
+
+.batch-exp-when {
+    display: inline-flex;
+    align-items: center;
+
+    max-width: 100%;
+    padding: 3px 8px;
+
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+
+    color: #9f1239;
+    background: #ffe4e6;
+    border-radius: 999px;
+}
+
+.batch-exp-when.is-near,
+.batch-exp-when.is-soon,
+.batch-exp-when.is-critical,
+.batch-exp-when.is-tomorrow,
+.batch-exp-when.is-now {
+    color: #ffffff;
+    background: #e11d48;
 }
 
 .batch-stock {

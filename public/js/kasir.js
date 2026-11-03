@@ -161,6 +161,74 @@ function kasirPage(categories, products, employeeIdentity = {}) {
             return this.selectedCategory.category_id !== null;
         },
 
+        expiryWhen(expiredAt) {
+            if (!expiredAt) {
+                return { label: "", level: "" };
+            }
+
+            const [year, month, day] = String(expiredAt).split("-").map(Number);
+            const exp = new Date(year, month - 1, day);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const days = Math.round((exp.getTime() - today.getTime()) / 86400000);
+
+            if (days <= 0) {
+                return { label: "HARI INI !!!", level: "now" };
+            }
+
+            if (days === 1) {
+                return { label: "BESOK !!!", level: "tomorrow" };
+            }
+
+            if (days < 30) {
+                let level = "days";
+
+                if (days <= 3) {
+                    level = "critical";
+                } else if (days <= 7) {
+                    level = "soon";
+                } else if (days <= 10) {
+                    level = "near";
+                }
+
+                return { label: `${days} hari lagi`, level };
+            }
+
+            let months =
+                (exp.getFullYear() - today.getFullYear()) * 12 +
+                (exp.getMonth() - today.getMonth());
+            const sameDay = new Date(
+                today.getFullYear(),
+                today.getMonth() + months,
+                today.getDate(),
+            );
+
+            if (sameDay > exp) {
+                months -= 1;
+            }
+
+            if (months < 1) {
+                return { label: `${days} hari lagi`, level: "days" };
+            }
+
+            const monthAnchor = new Date(
+                today.getFullYear(),
+                today.getMonth() + months,
+                today.getDate(),
+            );
+            const extra = Math.round(
+                (exp.getTime() - monthAnchor.getTime()) / 86400000,
+            );
+            const monthLabel = months === 1 ? "1 bulan" : `${months} bulan`;
+
+            return {
+                label:
+                    extra > 0 ? `${monthLabel} ${extra} hari lagi` : `${monthLabel} lagi`,
+                level: "month",
+            };
+        },
+
         get expiringItems() {
             const items = [];
 
@@ -170,12 +238,16 @@ function kasirPage(categories, products, employeeIdentity = {}) {
                         continue;
                     }
 
+                    const when = this.expiryWhen(detail.expired_at);
+
                     items.push({
                         id: detail.id,
                         name: product.name,
                         exp: detail.exp_label || detail.exp,
                         stock: detail.stock,
                         expired_at: detail.expired_at || "",
+                        when: when.label,
+                        level: when.level,
                     });
                 }
             }

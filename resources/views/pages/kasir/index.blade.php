@@ -42,9 +42,15 @@
 
                     <template x-for="item in expiringItems" :key="item.id">
 
-                        <li class="expiry-alert-item">
+                        <li class="expiry-alert-item" :class="'is-' + item.level">
 
-                            <span class="expiry-alert-name" x-text="item.name"></span>
+                            <div class="expiry-alert-row">
+
+                                <span class="expiry-alert-name" x-text="item.name"></span>
+
+                                <span class="expiry-alert-when" x-text="item.when"></span>
+
+                            </div>
 
                             <span class="expiry-alert-meta">
                                 Exp <span x-text="item.exp"></span>
@@ -166,7 +172,13 @@
                             </div>
 
                             {{-- Status --}}
-                            <div class="batch-note"></div>
+                            <div class="batch-note">
+
+                                <span x-show="detail.expiring_soon" class="batch-exp-when"
+                                    :class="'is-' + expiryWhen(detail.expired_at).level"
+                                    x-text="expiryWhen(detail.expired_at).label"></span>
+
+                            </div>
 
                             {{-- Stock --}}
                             <div class="batch-stock">
