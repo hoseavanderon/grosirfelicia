@@ -1219,84 +1219,112 @@ function transaksiPage(employees = []) {
                 throw new Error("Tidak bisa membuat gambar nota.");
             }
 
-            const width = Math.ceil(source.getBoundingClientRect().width);
+            const scroll = source.querySelector(".receipt-scroll");
+            const width = Math.ceil(
+                source.offsetWidth || source.getBoundingClientRect().width,
+            );
+            let height = Math.ceil(
+                Math.max(
+                    scroll ? scroll.scrollHeight : 0,
+                    source.offsetHeight,
+                    source.getBoundingClientRect().height,
+                ),
+            );
+
+            const actions = source.querySelector(".receipt-actions");
+            if (actions && scroll) {
+                let removed = actions.offsetHeight;
+                const divider = actions.previousElementSibling;
+                if (divider?.classList.contains("receipt-divider")) {
+                    removed += divider.offsetHeight;
+                }
+                height = Math.max(height - removed, source.offsetHeight - removed);
+            }
+
+            if (width < 20 || height < 20) {
+                throw new Error("Tidak bisa membuat gambar nota.");
+            }
+
             const backgroundColor =
                 getComputedStyle(source).backgroundColor || "#ffffff";
 
-            const host = document.createElement("div");
-            host.setAttribute("aria-hidden", "true");
-            host.style.cssText =
-                "position:fixed;left:0;top:0;z-index:-1;pointer-events:none;";
-
-            const clone = source.cloneNode(true);
-            clone.removeAttribute("id");
-            clone.querySelector("button[aria-label='Close']")?.remove();
-
-            const actions = clone.querySelector(".receipt-actions");
-            if (actions) {
-                const previous = actions.previousElementSibling;
-                if (previous?.classList.contains("receipt-divider")) {
-                    previous.remove();
-                }
-                actions.remove();
-            }
-
-            clone.style.width = `${width}px`;
-            clone.style.maxWidth = `${width}px`;
-            clone.style.maxHeight = "none";
-            clone.style.height = "auto";
-            clone.style.overflow = "visible";
-            clone.style.transform = "none";
-            clone.style.margin = "0";
-            clone.style.boxShadow = "none";
-            clone.style.backgroundColor = backgroundColor;
-
-            const scroll = clone.querySelector(".receipt-scroll");
-            if (scroll) {
-                scroll.style.maxHeight = "none";
-                scroll.style.overflow = "visible";
-                scroll.style.display = "block";
-            }
-
-            host.appendChild(clone);
-            document.body.appendChild(host);
-
-            try {
-                await new Promise((resolve) =>
-                    requestAnimationFrame(() => resolve()),
-                );
-
-                const canvas = await html2canvas(clone, {
-                    backgroundColor,
-                    scale: 2,
-                    useCORS: true,
-                    logging: false,
+            const canvas = await html2canvas(source, {
+                backgroundColor,
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                width,
+                height,
+                scrollX: 0,
+                scrollY: 0,
+                windowWidth: Math.max(
+                    document.documentElement.clientWidth,
                     width,
-                    windowWidth: document.documentElement.clientWidth,
-                });
+                ),
+                windowHeight: Math.max(
+                    document.documentElement.clientHeight,
+                    height,
+                ),
+                onclone(doc) {
+                    const modal = doc.getElementById("receipt-print-area");
+                    if (!modal) {
+                        return;
+                    }
 
-                if (canvas.width < 20 || canvas.height < 20) {
-                    throw new Error("Gambar nota kosong.");
-                }
+                    modal.style.setProperty("width", `${width}px`, "important");
+                    modal.style.setProperty("max-height", "none", "important");
+                    modal.style.setProperty("height", "auto", "important");
+                    modal.style.setProperty("overflow", "visible", "important");
+                    modal.style.setProperty("transform", "none", "important");
+                    modal.style.setProperty("box-shadow", "none");
 
-                const blob = await new Promise((resolve, reject) => {
-                    canvas.toBlob(
-                        (result) => {
-                            if (result) {
-                                resolve(result);
-                            } else {
-                                reject(new Error("Gagal membuat gambar nota."));
-                            }
-                        },
-                        "image/jpeg",
-                        0.95,
-                    );
-                });
+                    const clonedScroll = modal.querySelector(".receipt-scroll");
+                    if (clonedScroll) {
+                        clonedScroll.style.setProperty(
+                            "max-height",
+                            "none",
+                            "important",
+                        );
+                        clonedScroll.style.setProperty(
+                            "overflow",
+                            "visible",
+                            "important",
+                        );
+                        clonedScroll.style.setProperty(
+                            "display",
+                            "block",
+                            "important",
+                        );
+                    }
 
-                return blob;
-            } finally {
-                host.remove();
-            }
+                    modal.querySelector("button[aria-label='Close']")?.remove();
+
+                    const clonedActions = modal.querySelector(".receipt-actions");
+                    if (clonedActions) {
+                        const previous = clonedActions.previousElementSibling;
+                        if (previous?.classList.contains("receipt-divider")) {
+                            previous.remove();
+                        }
+                        clonedActions.remove();
+                    }
+                },
+            });
+
+            const blob = await new Promise((resolve, reject) => {
+                canvas.toBlob(
+                    (result) => {
+                        if (result) {
+                            resolve(result);
+                        } else {
+                            reject(new Error("Gagal membuat gambar nota."));
+                        }
+                    },
+                    "image/jpeg",
+                    0.95,
+                );
+            });
+
+            return blob;
         },
 
         downloadNotaFile(file) {
