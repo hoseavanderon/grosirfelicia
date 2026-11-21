@@ -164,6 +164,29 @@ function roundReceipt(context, x, y, width, height, radius) {
     context.closePath();
 }
 
+async function shareBarcodeImage(canvas, filename) {
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+    if (!blob) {
+        throw new Error('Gagal membuat gambar nota.');
+    }
+    const file = new File([blob], `${filename}.jpg`, { type: 'image/jpeg' });
+    const payload = { files: [file], title: filename };
+    if (navigator.canShare?.(payload)) {
+        try {
+            await navigator.share(payload);
+        } catch (error) {
+            if (error?.name !== 'AbortError') throw error;
+        }
+        return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+
 function transaksiPage(employees = []) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1378,17 +1401,6 @@ function transaksiPage(employees = []) {
             }
         },
 
-        downloadNotaFile(file) {
-            const url = URL.createObjectURL(file);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = file.name;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            setTimeout(() => URL.revokeObjectURL(url), 1500);
-        },
-
         async sendWhatsApp() {
             if (!this.selectedTransaction || this.sharingWhatsApp) {
                 return;
@@ -1406,32 +1418,12 @@ function transaksiPage(employees = []) {
                     this.selectedTransaction,
                     this.formatRupiah.bind(this),
                 );
-                const blob = await new Promise((resolve) =>
-                    canvas.toBlob(resolve, "image/jpeg", 0.92),
-                );
-                const safeName = trx.replace(/[^\w.-]+/g, "-");
-                const file = new File([blob], `nota-${safeName}.jpg`, {
-                    type: "image/jpeg",
-                });
-                const payload = { files: [file], title: `Nota ${trx}` };
-
-                if (navigator.canShare?.(payload)) {
-                    await navigator.share(payload);
-                    return;
-                }
-
-                this.downloadNotaFile(file);
+                const filename = `nota-${trx.replace(/[^\w.-]+/g, "-")}`;
+                await shareBarcodeImage(canvas, filename);
             } catch (error) {
-                if (error?.name === "AbortError") {
-                    return;
+                if (error?.name !== "AbortError") {
+                    // The receipt stays on screen when sharing is unavailable.
                 }
-
-                console.error(error);
-                this.showToast(
-                    "error",
-                    "Gagal",
-                    error?.message || "Gagal membagikan nota.",
-                );
             } finally {
                 this.sharingWhatsApp = false;
             }
