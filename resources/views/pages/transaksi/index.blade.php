@@ -758,6 +758,5 @@
 @push('scripts')
     <script src="{{ asset('js/receipt.js') }}"></script>
     <script src="{{ asset('js/thermal-printer.js') }}"></script>
-    <script src="{{ asset('js/html2canvas.min.js') }}?v={{ filemtime(public_path('js/html2canvas.min.js')) }}"></script>
     <script src="{{ asset('js/transaksi.js') }}?v={{ filemtime(public_path('js/transaksi.js')) }}"></script>
 @endpush

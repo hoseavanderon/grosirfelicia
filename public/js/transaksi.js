@@ -1,3 +1,169 @@
+function drawReceiptImage(transaction, formatRupiah) {
+    const scale = 3;
+    const width = 420;
+    const margin = 16;
+    const side = 24;
+    const font = 'Inter, ui-sans-serif, system-ui, sans-serif';
+    const ink = '#18181b';
+    const muted = 'rgba(24, 24, 27, 0.72)';
+    const line = '#e4e4e7';
+    const items = Array.isArray(transaction.receipt_items)
+        ? transaction.receipt_items
+        : [];
+    const measure = document.createElement('canvas').getContext('2d');
+    const contentWidth = width - margin * 2 - side * 2;
+
+    const rows = items.map((item) => {
+        const price = `Rp ${formatRupiah(item.line_total)}`;
+        measure.font = `600 14px ${font}`;
+        const priceWidth = measure.measureText(price).width;
+        return {
+            item,
+            price,
+            lines: wrapReceiptLines(
+                measure,
+                String(item.product_name || 'Produk').toUpperCase(),
+                Math.max(120, contentWidth - priceWidth - 16),
+            ),
+        };
+    });
+
+    const header = 16 + 10 + 18 + 6 + 16;
+    const meta = 8 + 22 + 8 + 22;
+    const itemsHeight = rows.reduce(
+        (total, row) => total + row.lines.length * 18 + 18 + 16,
+        0,
+    );
+    const cardHeight = 28 + header + 16 + meta + 16 + itemsHeight + 16 + 24 + 28;
+    const height = cardHeight + margin * 2;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
+    const context = canvas.getContext('2d');
+    context.scale(scale, scale);
+    context.fillStyle = '#f4f4f5';
+    context.fillRect(0, 0, width, height);
+    roundReceipt(context, margin, margin, width - margin * 2, cardHeight, 24);
+    context.fillStyle = '#ffffff';
+    context.fill();
+    context.strokeStyle = line;
+    context.lineWidth = 1;
+    context.stroke();
+
+    const left = margin + side;
+    const right = width - margin - side;
+    const center = width / 2;
+    let y = margin + 28;
+    context.textBaseline = 'top';
+    context.textAlign = 'center';
+    context.fillStyle = ink;
+    context.font = `700 13px ${font}`;
+    context.fillText('NOTA TRANSAKSI', center, y);
+    y += 26;
+    context.font = `600 14px ${font}`;
+    context.fillText(String(transaction.datetime_label || ''), center, y);
+    y += 24;
+    context.fillStyle = muted;
+    context.font = `500 13px ${font}`;
+    context.fillText(`TRX : ${transaction.trx || ''}`, center, y);
+    y += 22;
+    y = receiptDivider(context, left, y, right, line);
+    y += 16;
+    receiptPair(context, left, right, y, 'Pelanggan :', String(transaction.customer || '-'), font, ink, muted);
+    y += 28;
+    receiptPair(context, left, right, y, 'Nomor Telepon :', String(transaction.phone || '-'), font, ink, muted);
+    y += 26;
+    y = receiptDivider(context, left, y, right, line);
+    y += 16;
+
+    rows.forEach((row) => {
+        context.fillStyle = ink;
+        context.font = `600 14px ${font}`;
+        context.textAlign = 'left';
+        row.lines.forEach((lineText, index) => {
+            context.fillText(lineText, left, y);
+            if (index === 0) {
+                context.textAlign = 'right';
+                context.fillText(row.price, right, y);
+                context.textAlign = 'left';
+            }
+            y += 18;
+        });
+        context.fillStyle = muted;
+        context.font = `500 12px ${font}`;
+        context.fillText(
+            `${row.item.qty} × Rp ${formatRupiah(row.item.unit_price)}`,
+            left,
+            y,
+        );
+        y += 28;
+    });
+
+    y = receiptDivider(context, left, y, right, line);
+    y += 16;
+    context.fillStyle = ink;
+    context.font = `700 16px ${font}`;
+    context.textAlign = 'right';
+    context.fillText(`Total:  Rp ${formatRupiah(transaction.amount)}`, right, y);
+
+    return canvas;
+}
+
+function wrapReceiptLines(context, text, maxWidth) {
+    const words = String(text || '').split(/\s+/).filter(Boolean);
+    const lines = [];
+    let current = '';
+
+    words.forEach((word) => {
+        const next = current ? `${current} ${word}` : word;
+        if (context.measureText(next).width <= maxWidth) {
+            current = next;
+            return;
+        }
+        if (current) {
+            lines.push(current);
+        }
+        current = word;
+    });
+
+    if (current) {
+        lines.push(current);
+    }
+
+    return lines.length ? lines : [''];
+}
+
+function receiptPair(context, left, right, y, label, value, font, ink, muted) {
+    context.textAlign = 'left';
+    context.fillStyle = muted;
+    context.font = `500 14px ${font}`;
+    context.fillText(label, left, y);
+    context.textAlign = 'right';
+    context.fillStyle = ink;
+    context.font = `600 14px ${font}`;
+    context.fillText(value, right, y);
+}
+
+function receiptDivider(context, left, y, right, color) {
+    context.strokeStyle = color;
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(left, y + 0.5);
+    context.lineTo(right, y + 0.5);
+    context.stroke();
+    return y + 1;
+}
+
+function roundReceipt(context, x, y, width, height, radius) {
+    context.beginPath();
+    context.moveTo(x + radius, y);
+    context.arcTo(x + width, y, x + width, y + height, radius);
+    context.arcTo(x + width, y + height, x, y + height, radius);
+    context.arcTo(x, y + height, x, y, radius);
+    context.arcTo(x, y, x + width, y, radius);
+    context.closePath();
+}
+
 function transaksiPage(employees = []) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1212,121 +1378,6 @@ function transaksiPage(employees = []) {
             }
         },
 
-        async captureReceiptJpeg() {
-            const source = document.getElementById("receipt-print-area");
-
-            if (!source || typeof html2canvas !== "function") {
-                throw new Error("Tidak bisa membuat gambar nota.");
-            }
-
-            const scroll = source.querySelector(".receipt-scroll");
-            const width = Math.ceil(
-                source.offsetWidth || source.getBoundingClientRect().width,
-            );
-            let height = Math.ceil(
-                Math.max(
-                    scroll ? scroll.scrollHeight : 0,
-                    source.offsetHeight,
-                    source.getBoundingClientRect().height,
-                ),
-            );
-
-            const actions = source.querySelector(".receipt-actions");
-            if (actions && scroll) {
-                let removed = actions.offsetHeight;
-                const divider = actions.previousElementSibling;
-                if (divider?.classList.contains("receipt-divider")) {
-                    removed += divider.offsetHeight;
-                }
-                height = Math.max(height - removed, source.offsetHeight - removed);
-            }
-
-            if (width < 20 || height < 20) {
-                throw new Error("Tidak bisa membuat gambar nota.");
-            }
-
-            const backgroundColor =
-                getComputedStyle(source).backgroundColor || "#ffffff";
-
-            const canvas = await html2canvas(source, {
-                backgroundColor,
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                width,
-                height,
-                scrollX: 0,
-                scrollY: 0,
-                windowWidth: Math.max(
-                    document.documentElement.clientWidth,
-                    width,
-                ),
-                windowHeight: Math.max(
-                    document.documentElement.clientHeight,
-                    height,
-                ),
-                onclone(doc) {
-                    const modal = doc.getElementById("receipt-print-area");
-                    if (!modal) {
-                        return;
-                    }
-
-                    modal.style.setProperty("width", `${width}px`, "important");
-                    modal.style.setProperty("max-height", "none", "important");
-                    modal.style.setProperty("height", "auto", "important");
-                    modal.style.setProperty("overflow", "visible", "important");
-                    modal.style.setProperty("transform", "none", "important");
-                    modal.style.setProperty("box-shadow", "none");
-
-                    const clonedScroll = modal.querySelector(".receipt-scroll");
-                    if (clonedScroll) {
-                        clonedScroll.style.setProperty(
-                            "max-height",
-                            "none",
-                            "important",
-                        );
-                        clonedScroll.style.setProperty(
-                            "overflow",
-                            "visible",
-                            "important",
-                        );
-                        clonedScroll.style.setProperty(
-                            "display",
-                            "block",
-                            "important",
-                        );
-                    }
-
-                    modal.querySelector("button[aria-label='Close']")?.remove();
-
-                    const clonedActions = modal.querySelector(".receipt-actions");
-                    if (clonedActions) {
-                        const previous = clonedActions.previousElementSibling;
-                        if (previous?.classList.contains("receipt-divider")) {
-                            previous.remove();
-                        }
-                        clonedActions.remove();
-                    }
-                },
-            });
-
-            const blob = await new Promise((resolve, reject) => {
-                canvas.toBlob(
-                    (result) => {
-                        if (result) {
-                            resolve(result);
-                        } else {
-                            reject(new Error("Gagal membuat gambar nota."));
-                        }
-                    },
-                    "image/jpeg",
-                    0.95,
-                );
-            });
-
-            return blob;
-        },
-
         downloadNotaFile(file) {
             const url = URL.createObjectURL(file);
             const link = document.createElement("a");
@@ -1346,20 +1397,23 @@ function transaksiPage(employees = []) {
             this.sharingWhatsApp = true;
 
             try {
-                const blob = await this.captureReceiptJpeg();
                 const trx = String(
                     this.selectedTransaction.trx ||
                         this.selectedTransaction.id ||
                         "transaksi",
                 );
+                const canvas = drawReceiptImage(
+                    this.selectedTransaction,
+                    this.formatRupiah.bind(this),
+                );
+                const blob = await new Promise((resolve) =>
+                    canvas.toBlob(resolve, "image/jpeg", 0.92),
+                );
                 const safeName = trx.replace(/[^\w.-]+/g, "-");
                 const file = new File([blob], `nota-${safeName}.jpg`, {
                     type: "image/jpeg",
                 });
-                const payload = {
-                    files: [file],
-                    title: `Nota ${trx}`,
-                };
+                const payload = { files: [file], title: `Nota ${trx}` };
 
                 if (navigator.canShare?.(payload)) {
                     await navigator.share(payload);
