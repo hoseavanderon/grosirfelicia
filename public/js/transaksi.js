@@ -52,6 +52,7 @@ function transaksiPage(employees = []) {
         productOptions: [],
         savingEdit: false,
         deletingTransaction: false,
+        sharingWhatsApp: false,
         editCustomerDropdownOpen: false,
         editCustomerResults: [],
         editCustomerSearchLoading: false,
@@ -1211,18 +1212,180 @@ function transaksiPage(employees = []) {
             }
         },
 
-        sendWhatsApp() {
-            if (!this.selectedTransaction?.phone) {
+        async captureReceiptJpeg() {
+            const source = document.getElementById("receipt-print-area");
+
+            if (!source || typeof html2canvas !== "function") {
+                throw new Error("Tidak bisa membuat gambar nota.");
+            }
+
+            const width = Math.ceil(source.getBoundingClientRect().width);
+            const backgroundColor =
+                getComputedStyle(source).backgroundColor || "#ffffff";
+
+            const host = document.createElement("div");
+            host.setAttribute("aria-hidden", "true");
+            host.style.cssText =
+                "position:fixed;left:0;top:0;z-index:-1;pointer-events:none;";
+
+            const clone = source.cloneNode(true);
+            clone.removeAttribute("id");
+            clone.querySelector("button[aria-label='Close']")?.remove();
+
+            const actions = clone.querySelector(".receipt-actions");
+            if (actions) {
+                const previous = actions.previousElementSibling;
+                if (previous?.classList.contains("receipt-divider")) {
+                    previous.remove();
+                }
+                actions.remove();
+            }
+
+            clone.style.width = `${width}px`;
+            clone.style.maxWidth = `${width}px`;
+            clone.style.maxHeight = "none";
+            clone.style.height = "auto";
+            clone.style.overflow = "visible";
+            clone.style.transform = "none";
+            clone.style.margin = "0";
+            clone.style.boxShadow = "none";
+            clone.style.backgroundColor = backgroundColor;
+
+            const scroll = clone.querySelector(".receipt-scroll");
+            if (scroll) {
+                scroll.style.maxHeight = "none";
+                scroll.style.overflow = "visible";
+                scroll.style.display = "block";
+            }
+
+            host.appendChild(clone);
+            document.body.appendChild(host);
+
+            try {
+                await new Promise((resolve) =>
+                    requestAnimationFrame(() => resolve()),
+                );
+
+                const canvas = await html2canvas(clone, {
+                    backgroundColor,
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    width,
+                    windowWidth: document.documentElement.clientWidth,
+                });
+
+                if (canvas.width < 20 || canvas.height < 20) {
+                    throw new Error("Gambar nota kosong.");
+                }
+
+                const blob = await new Promise((resolve, reject) => {
+                    canvas.toBlob(
+                        (result) => {
+                            if (result) {
+                                resolve(result);
+                            } else {
+                                reject(new Error("Gagal membuat gambar nota."));
+                            }
+                        },
+                        "image/jpeg",
+                        0.95,
+                    );
+                });
+
+                return blob;
+            } finally {
+                host.remove();
+            }
+        },
+
+        downloadNotaFile(file) {
+            const url = URL.createObjectURL(file);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = file.name;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+        },
+
+        async sendWhatsApp() {
+            if (!this.selectedTransaction || this.sharingWhatsApp) {
                 return;
             }
 
-            const phone = this.selectedTransaction.phone.replace(/\D/g, "");
-            const message = ReceiptBuilder.buildReceiptText(
-                this.selectedTransaction,
-            );
-            const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+            this.sharingWhatsApp = true;
 
-            window.open(url, "_blank");
+            const phone = String(this.selectedTransaction.phone || "").replace(
+                /\D/g,
+                "",
+            );
+            const canTryFileShare =
+                typeof navigator.share === "function" &&
+                typeof navigator.canShare === "function";
+            const whatsappWindow =
+                canTryFileShare || !phone
+                    ? null
+                    : window.open("about:blank", "_blank");
+
+            try {
+                const blob = await this.captureReceiptJpeg();
+                const trx = String(
+                    this.selectedTransaction.trx ||
+                        this.selectedTransaction.id ||
+                        "transaksi",
+                );
+                const safeName = trx.replace(/[^\w.-]+/g, "-");
+                const file = new File([blob], `nota-${safeName}.jpg`, {
+                    type: "image/jpeg",
+                });
+                const caption = `Nota ${trx}`;
+
+                if (canTryFileShare && navigator.canShare({ files: [file] })) {
+                    whatsappWindow?.close();
+                    await navigator.share({
+                        files: [file],
+                        title: caption,
+                        text: caption,
+                    });
+                    return;
+                }
+
+                this.downloadNotaFile(file);
+
+                if (phone) {
+                    const whatsappUrl = `https://wa.me/${phone}`;
+                    if (whatsappWindow) {
+                        whatsappWindow.location = whatsappUrl;
+                    } else {
+                        window.open(whatsappUrl, "_blank");
+                    }
+                }
+
+                this.showToast(
+                    "success",
+                    "Nota siap dikirim",
+                    phone
+                        ? "Gambar nota sudah diunduh. Lampirkan file JPG tersebut di chat WhatsApp."
+                        : "Gambar nota sudah diunduh. Kirim file JPG tersebut lewat WhatsApp.",
+                );
+            } catch (error) {
+                whatsappWindow?.close();
+
+                if (error?.name === "AbortError") {
+                    return;
+                }
+
+                console.error(error);
+                this.showToast(
+                    "error",
+                    "Gagal",
+                    error?.message || "Gagal membagikan nota.",
+                );
+            } finally {
+                this.sharingWhatsApp = false;
+            }
         },
 
         async printReceipt() {
