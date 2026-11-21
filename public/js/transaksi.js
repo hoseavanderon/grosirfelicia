@@ -1345,18 +1345,6 @@ function transaksiPage(employees = []) {
 
             this.sharingWhatsApp = true;
 
-            const phone = String(this.selectedTransaction.phone || "").replace(
-                /\D/g,
-                "",
-            );
-            const canTryFileShare =
-                typeof navigator.share === "function" &&
-                typeof navigator.canShare === "function";
-            const whatsappWindow =
-                canTryFileShare || !phone
-                    ? null
-                    : window.open("about:blank", "_blank");
-
             try {
                 const blob = await this.captureReceiptJpeg();
                 const trx = String(
@@ -1368,39 +1356,18 @@ function transaksiPage(employees = []) {
                 const file = new File([blob], `nota-${safeName}.jpg`, {
                     type: "image/jpeg",
                 });
-                const caption = `Nota ${trx}`;
+                const payload = {
+                    files: [file],
+                    title: `Nota ${trx}`,
+                };
 
-                if (canTryFileShare && navigator.canShare({ files: [file] })) {
-                    whatsappWindow?.close();
-                    await navigator.share({
-                        files: [file],
-                        title: caption,
-                        text: caption,
-                    });
+                if (navigator.canShare?.(payload)) {
+                    await navigator.share(payload);
                     return;
                 }
 
                 this.downloadNotaFile(file);
-
-                if (phone) {
-                    const whatsappUrl = `https://wa.me/${phone}`;
-                    if (whatsappWindow) {
-                        whatsappWindow.location = whatsappUrl;
-                    } else {
-                        window.open(whatsappUrl, "_blank");
-                    }
-                }
-
-                this.showToast(
-                    "success",
-                    "Nota siap dikirim",
-                    phone
-                        ? "Gambar nota sudah diunduh. Lampirkan file JPG tersebut di chat WhatsApp."
-                        : "Gambar nota sudah diunduh. Kirim file JPG tersebut lewat WhatsApp.",
-                );
             } catch (error) {
-                whatsappWindow?.close();
-
                 if (error?.name === "AbortError") {
                     return;
                 }
